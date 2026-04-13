@@ -3,127 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carmel - Kitchen Dashboard</title>
+    <title>Carmel Kitchen - Display</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+        .k-card { animation: pulse 2s infinite; background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); }
+        @keyframes pulse { 0%, 100% { border-color: rgba(249,115,22,0.2); } 50% { border-color: #f97316; } }
     </style>
 </head>
-<body class="bg-[#0f172a] p-4 pb-24 text-white">
+<body class="p-6 bg-black overflow-hidden">
+    <video autoplay muted loop class="fixed inset-0 w-full h-full object-cover opacity-30 -z-10">
+        <source src="https://assets.mixkit.co/videos/preview/mixkit-chef-cooking-in-a-professional-kitchen-40790-large.mp4" type="video/mp4">
+    </video>
 
-    <div id="new-order-toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-orange-600 text-white px-8 py-4 rounded-3xl font-black shadow-2xl transition-all duration-500 transform -translate-y-24 hidden">
-        🔔 አዲስ ትዕዛዝ ገብቷል!
+    <div class="flex justify-between items-center mb-8 border-b border-orange-500/30 pb-4">
+        <h1 class="text-3xl font-black text-orange-500 italic uppercase">KITCHEN ORDERS</h1>
+        <div id="staff-badge" class="text-[10px] text-orange-400 font-bold uppercase tracking-widest bg-orange-500/10 px-4 py-1 rounded-full border border-orange-500/20">
+            Staff Active
+        </div>
     </div>
 
-    <div id="sound-overlay" class="fixed inset-0 bg-slate-900 z-[100] flex flex-col items-center justify-center p-6 text-center">
-        <button onclick="enableSound()" class="bg-orange-600 px-10 py-5 rounded-[2rem] font-black text-xl animate-pulse">ጀምር 🔊</button>
-    </div>
-
-    <div class="max-w-5xl mx-auto">
-        <header class="flex justify-between items-center mb-8">
-            <h1 class="text-3xl font-black text-orange-500 tracking-tighter">የኩሽና ስራ</h1>
-            <div class="bg-white/5 border border-white/10 px-6 py-2 rounded-2xl text-center">
-                <p id="order-count" class="text-2xl font-black text-white">0</p>
-                <p class="text-[10px] text-slate-400 uppercase">በሂደት ላይ</p>
-            </div>
-        </header>
-
-        <div id="kitchen-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12"></div>
-
-        <hr class="border-white/5 mb-8">
-
-        <section>
-            <h2 class="text-slate-400 text-xs font-black uppercase tracking-widest mb-4">የዛሬው የወጡ ምግቦች (Kitchen Out)</h2>
-            <div id="daily-out-list" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                </div>
-        </section>
-    </div>
+    <div id="kitchen-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
 
     <script>
-        // Updated Supabase Credentials
         const SUPABASE_URL = "https://csdpoyqbkjljaqknunyv.supabase.co";
         const SUPABASE_KEY = "sb_publishable_GZ9zqNM1CPfdyaEhLY_pOg_Fs4CSfrC";
-        
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        const alertSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        function enableSound() {
-            alertSound.play().then(() => {
-                alertSound.pause();
-                alertSound.currentTime = 0;
-                document.getElementById('sound-overlay').classList.add('hidden');
-            });
-        }
-
-        function triggerAlert() {
-            const toast = document.getElementById('new-order-toast');
-            toast.classList.remove('hidden');
-            setTimeout(() => toast.classList.remove('-translate-y-24'), 100);
-            alertSound.play().catch(e => console.log(e));
-            setTimeout(() => {
-                toast.classList.add('-translate-y-24');
-                setTimeout(() => toast.classList.add('hidden'), 500);
-            }, 5000);
-        }
-
-        async function loadOrders() {
-            const { data } = await supabaseClient.from('orders').select('*').eq('status', 'verified').order('created_at', { ascending: true });
-            const list = document.getElementById('kitchen-list');
-            const countDisplay = document.getElementById('order-count');
+        // --- NEW SECURITY CHECK ---
+        async function checkAccess() {
+            const loggedInUser = sessionStorage.getItem('staffName');
             
-            const foodOrders = (data || []).filter(o => (o.food_list && o.food_list !== "EMPTY") || (o.items && o.items !== "EMPTY"));
-            countDisplay.innerText = foodOrders.length;
-            list.innerHTML = '';
+            // Check if account still exists in the database
+            const { data, error } = await _supabase
+                .from('staff')
+                .select('*')
+                .eq('full_name', loggedInUser)
+                .maybeSingle();
 
-            foodOrders.forEach(order => {
-                const food = (order.food_list && order.food_list !== "EMPTY") ? order.food_list : order.items;
-                const card = document.createElement('div');
-                card.className = "bg-white/5 border border-white/10 rounded-[2.5rem] p-6 flex flex-col justify-between";
-                card.innerHTML = `
-                    <div class="flex justify-between items-center mb-4"><span class="text-5xl font-black text-orange-500">#${order.queue_no}</span></div>
-                    <p class="text-2xl font-bold mb-8">${food}</p>
-                    <button onclick="markReady('${order.id}')" class="w-full bg-green-600 py-4 rounded-2xl font-black">ጨርሻለሁ</button>`;
-                list.appendChild(card);
-            });
-            loadDailyOut();
+            if (!data || error) {
+                alert("የእርስዎ መለያ ተሰርዟል! (Your account has been removed)");
+                sessionStorage.clear();
+                window.location.href = "Login.html";
+                return false;
+            }
+            return true;
         }
 
-        async function loadDailyOut() {
-            const today = new Date(); today.setHours(0,0,0,0);
-            const { data } = await supabaseClient.from('orders')
-                .select('queue_no, food_list, items')
-                .gte('created_at', today.toISOString())
-                .in('status', ['ready', 'done']);
+        async function loadKitchen() {
+            // Run security check during data load
+            const hasAccess = await checkAccess();
+            if (!hasAccess) return;
 
-            const outList = document.getElementById('daily-out-list');
-            outList.innerHTML = '';
-            
+            const { data } = await _supabase
+                .from('orders')
+                .select('*')
+                .eq('status', 'verified')
+                .order('created_at', { ascending: true });
+
             if (data) {
-                data.forEach(order => {
-                    const food = (order.food_list && order.food_list !== "EMPTY") ? order.food_list : order.items;
-                    if(!food || food === "EMPTY") return;
-                    
-                    const pill = document.createElement('div');
-                    pill.className = "bg-white/10 border border-white/5 p-2 rounded-xl text-center";
-                    pill.innerHTML = `<p class="text-[10px] text-orange-500 font-black">#${order.queue_no}</p>
-                                     <p class="text-[9px] text-slate-300 truncate">${food}</p>`;
-                    outList.appendChild(pill);
+                const grid = document.getElementById('kitchen-grid');
+                grid.innerHTML = '';
+                
+                // Filter out drinks (Bar items)
+                const foodItems = data.filter(o => 
+                    !o.items.toLowerCase().includes('juice') && 
+                    !o.items.toLowerCase().includes('coffee') &&
+                    !o.items.toLowerCase().includes('mojito') &&
+                    !o.items.toLowerCase().includes('shake')
+                );
+                
+                if (foodItems.length === 0) {
+                    grid.innerHTML = '<div class="col-span-full py-20 text-center text-zinc-700 font-black uppercase text-xs tracking-widest">ምንም የታዘዘ ምግብ የለም</div>';
+                }
+
+                foodItems.forEach(order => {
+                    const div = document.createElement('div');
+                    div.className = "p-8 rounded-[2.5rem] border-2 k-card";
+                    div.innerHTML = `
+                        <div class="flex justify-between items-start mb-4">
+                            <p class="text-[10px] text-orange-500 font-bold uppercase">${new Date(order.created_at).toLocaleTimeString()}</p>
+                            <span class="bg-orange-600/20 text-orange-500 text-[9px] px-2 py-1 rounded-md font-black uppercase">Food</span>
+                        </div>
+                        <h2 class="text-2xl font-black mb-8 uppercase leading-tight text-white">${order.items}</h2>
+                        <button onclick="markDone('${order.id}')" class="w-full bg-orange-600 hover:bg-orange-500 text-white py-4 rounded-2xl font-bold transition-all active:scale-95">
+                            READY ✅
+                        </button>
+                    `;
+                    grid.appendChild(div);
                 });
             }
         }
 
-        async function markReady(id) {
-            await supabaseClient.from('orders').update({ status: 'ready' }).eq('id', id);
-            loadOrders();
+        async function markDone(id) {
+            const hasAccess = await checkAccess();
+            if (!hasAccess) return;
+
+            await _supabase.from('orders').update({ status: 'done' }).eq('id', id);
+            loadKitchen();
         }
 
-        supabaseClient.channel('k-room').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, (payload) => {
-            if (payload.new.status === 'verified') { triggerAlert(); loadOrders(); }
-        }).subscribe();
+        // Real-time Update Listener
+        _supabase.channel('kitchen-updates')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => loadKitchen())
+            .subscribe();
 
-        loadOrders();
+        // Initial Load
+        loadKitchen();
     </script>
 </body>
 </html>
