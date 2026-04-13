@@ -6,6 +6,7 @@
     <title>Carmel Cashier Terminal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         body { background: #000; color: white; font-family: 'Inter', sans-serif; }
         .card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1.5rem; }
@@ -15,59 +16,79 @@
     </style>
 </head>
 <body class="p-4">
-    <div class="max-w-4xl mx-auto">
+    <div class="max-w-6xl mx-auto">
         <header class="flex justify-between items-center mb-8 border-b border-orange-500/20 pb-4">
             <div>
                 <h1 class="text-3xl font-black italic text-orange-500 uppercase">CASHIER</h1>
                 <p id="staff-name-display" class="text-[10px] text-zinc-500 font-bold uppercase"></p>
             </div>
-            <div class="text-right flex gap-6">
-                <div onclick="clearDailySales()">
+            
+            <div class="flex gap-6 items-center">
+                <div class="text-right">
                     <p id="daily-count" class="text-xl font-black text-white">0</p>
                     <p class="text-[9px] text-zinc-500 uppercase font-black">Orders</p>
                 </div>
-                <div>
+                <div class="text-right">
                     <p id="daily-money" class="text-xl font-black text-orange-500">0 Birr</p>
                     <p class="text-[9px] text-zinc-500 uppercase font-black">Total Sales</p>
                 </div>
+                <button onclick="downloadSales()" class="bg-zinc-800 p-3 rounded-lg hover:bg-zinc-700 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M224,144v64a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V144a8,8,0,0,1,16,0v56H208V144a8,8,0,0,1,16,0Zm-101.65,13.66a8,8,0,0,0,11.3,0l40-40a8,8,0,0,0-11.3-11.32L136,132.69V40a8,8,0,0,0-16,0v92.69L93.66,106.34a8,8,0,0,0-11.32,11.32Z"></path></svg>
+                </button>
+                <button onclick="clearDailySales()" class="text-zinc-700 hover:text-red-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192ZM112,104v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Z"></path></svg>
+                </button>
             </div>
         </header>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="card p-6 border-white/5">
-                <h2 class="text-orange-500 font-black mb-4 uppercase text-xs italic tracking-widest">Submit Order</h2>
-                <div class="space-y-4">
-                    <input id="item-search" type="text" placeholder="Menu Item Name" class="input-field">
-                    <input id="order-qty" type="number" value="1" class="input-field">
-                    <input id="order-price" type="number" placeholder="Total Price" class="input-field">
-                    <button onclick="placeOrder()" class="w-full bg-white text-black font-black py-4 rounded-xl uppercase text-xs hover:bg-orange-500 transition-all">Submit Order</button>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="space-y-6 lg:col-span-1">
+                <div class="card p-6 border-white/5">
+                    <h2 class="text-orange-500 font-black mb-4 uppercase text-xs italic tracking-widest">Submit Order</h2>
+                    <div class="space-y-3">
+                        <input id="order-item" type="text" placeholder="Menu Item" class="input-field">
+                        <div class="grid grid-cols-2 gap-2">
+                            <input id="order-qty" type="number" value="1" class="input-field">
+                            <input id="order-price" type="number" placeholder="Price" class="input-field">
+                        </div>
+                        <button onclick="placeOrder()" class="w-full bg-white text-black font-black py-3 rounded-xl uppercase text-xs">Submit Sale</button>
+                    </div>
+                </div>
+
+                <div class="card p-6 border-orange-500/10">
+                    <h2 class="text-orange-500 font-black mb-4 uppercase text-xs italic tracking-widest">Log Expense</h2>
+                    <div class="space-y-3">
+                        <select id="exp-item-select" class="input-field" onchange="toggleOtherBox()">
+                            <option value="">Loading Inventory...</option>
+                        </select>
+                        <div id="other-note-container" class="hidden">
+                            <input id="exp-note" type="text" placeholder="Note (Transport/Rent)" class="input-field border-orange-500/40">
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <input id="exp-qty" type="number" oninput="calcExp()" placeholder="Qty" class="input-field">
+                            <select id="exp-unit-select" class="input-field">
+                                <option value="pcs">pcs</option><option value="kg">kg</option><option value="liter">liter</option>
+                            </select>
+                            <input id="exp-price" type="number" oninput="calcExp()" placeholder="Price" class="input-field">
+                        </div>
+                        <p id="exp-total" class="text-center font-bold text-orange-500">0 Birr</p>
+                        <button onclick="logPurchase()" class="w-full bg-orange-500 text-black font-black py-3 rounded-xl uppercase text-xs">Log Expense</button>
+                    </div>
                 </div>
             </div>
 
-            <div class="card p-6 border-orange-500/10">
-                <h2 class="text-orange-500 font-black mb-4 uppercase text-xs italic tracking-widest">Log Expense</h2>
-                <div class="space-y-4">
-                    <select id="exp-item-select" class="input-field" onchange="toggleOtherBox()">
-                        <option value="">Loading Inventory...</option>
-                    </select>
-
-                    <div id="other-note-container" class="hidden">
-                        <input id="exp-note" type="text" placeholder="Note (e.g. Transport/Rent)" class="input-field border-orange-500/40">
+            <div class="lg:col-span-2">
+                <div class="card h-full p-6">
+                    <h2 class="text-xs font-black uppercase text-zinc-500 mb-4 tracking-widest">Today's Transactions</h2>
+                    <div class="overflow-y-auto max-h-[500px]">
+                        <table class="w-full text-left text-sm">
+                            <thead class="sticky top-0 bg-black text-[10px] text-zinc-600 uppercase font-black border-b border-white/10">
+                                <tr><th class="py-2">Time</th><th class="py-2">Item</th><th class="py-2">Qty</th><th class="py-2">Total</th></tr>
+                            </thead>
+                            <tbody id="sales-table-body" class="divide-y divide-white/5">
+                                </tbody>
+                        </table>
                     </div>
-                    
-                    <div class="grid grid-cols-3 gap-2">
-                        <input id="exp-qty" type="number" oninput="calcExpTotal()" placeholder="Qty" class="input-field">
-                        <select id="exp-unit-select" class="input-field">
-                            <option value="pcs">pcs</option>
-                            <option value="kg">kg</option>
-                            <option value="liter">liter</option>
-                        </select>
-                        <input id="exp-unit-price" type="number" oninput="calcExpTotal()" placeholder="Price" class="input-field">
-                    </div>
-
-                    <div class="bg-orange-500/5 p-4 rounded-xl border border-orange-500/20 text-center text-2xl font-black text-orange-500" id="exp-total-display">0 Birr</div>
-
-                    <button id="submit-exp-btn" onclick="logPurchase()" class="w-full bg-orange-500 text-black font-black py-4 rounded-xl uppercase text-xs">Submit & Update</button>
                 </div>
             </div>
         </div>
@@ -76,104 +97,107 @@
     <script>
         const _supabase = supabase.createClient("https://csdpoyqbkjljaqknunyv.supabase.co", "sb_publishable_GZ9zqNM1CPfdyaEhLY_pOg_Fs4CSfrC");
         const staffName = sessionStorage.getItem('staffName') || 'CASHIER';
-        document.getElementById('staff-name-display').innerText = `Staff: ${staffName}`;
+        document.getElementById('staff-name-display').innerText = `Logged in as: ${staffName}`;
 
-        // Initialize Daily Sales from LocalStorage (Save when refresh)
-        let dailyCount = parseInt(localStorage.getItem('carmel_daily_count')) || 0;
-        let dailyMoney = parseInt(localStorage.getItem('carmel_daily_money')) || 0;
+        let dailySales = JSON.parse(localStorage.getItem('carmel_sales_list')) || [];
 
-        function updateDisplay() {
-            document.getElementById('daily-count').innerText = dailyCount;
-            document.getElementById('daily-money').innerText = `${dailyMoney} Birr`;
-            localStorage.setItem('carmel_daily_count', dailyCount);
-            localStorage.setItem('carmel_daily_money', dailyMoney);
+        function updateUI() {
+            const table = document.getElementById('sales-table-body');
+            table.innerHTML = '';
+            let totalMoney = 0;
+            
+            dailySales.forEach((s, index) => {
+                totalMoney += s.price;
+                table.innerHTML = `
+                    <tr>
+                        <td class="py-3 text-zinc-500 text-[10px]">${s.time}</td>
+                        <td class="py-3 font-bold">${s.item}</td>
+                        <td class="py-3">${s.qty}</td>
+                        <td class="py-3 text-orange-500 font-bold">${s.price}</td>
+                    </tr>` + table.innerHTML;
+            });
+
+            document.getElementById('daily-count').innerText = dailySales.length;
+            document.getElementById('daily-money').innerText = `${totalMoney} Birr`;
+            localStorage.setItem('carmel_sales_list', JSON.stringify(dailySales));
         }
-        updateDisplay();
 
         async function placeOrder() {
-            const item = document.getElementById('item-search').value;
+            const item = document.getElementById('order-item').value;
             const qty = parseInt(document.getElementById('order-qty').value);
             const price = parseInt(document.getElementById('order-price').value);
 
-            if(!item || !price) return alert("Please fill order details");
+            if(!item || !price) return;
 
-            const { error } = await _supabase.from('orders').insert([{
-                item_name: item,
-                quantity: qty,
-                total_price: price,
-                status: 'done'
-            }]);
-
+            const { error } = await _supabase.from('orders').insert([{ item_name: item, quantity: qty, total_price: price, status: 'done' }]);
+            
             if(!error) {
-                dailyCount += 1;
-                dailyMoney += price;
-                updateDisplay();
-                alert("Order Saved!");
-                document.getElementById('item-search').value = '';
+                const now = new Date();
+                dailySales.push({ 
+                    time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), 
+                    item: item, 
+                    qty: qty, 
+                    price: price 
+                });
+                updateUI();
+                document.getElementById('order-item').value = '';
                 document.getElementById('order-price').value = '';
-            } else {
-                alert("Error: " + error.message);
             }
+        }
+
+        function downloadSales() {
+            const worksheet = XLSX.utils.json_to_sheet(dailySales);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Daily Sales");
+            XLSX.writeFile(workbook, `Carmel_Sales_${new Date().toLocaleDateString()}.xlsx`);
         }
 
         function clearDailySales() {
-            const code = prompt("Enter Manager Code to Clear Sales:");
-            if(code === "2026") { // You can change this code
-                dailyCount = 0;
-                dailyMoney = 0;
-                updateDisplay();
-                alert("Daily Sales Cleared");
-            } else {
-                alert("Wrong Code!");
+            if(prompt("Enter Manager Code to Reset List:") === "2026") {
+                dailySales = [];
+                updateUI();
             }
         }
 
-        // --- EXPENSE LOGIC ---
+        // --- EXPENSE FUNCTIONS (FIXED) ---
         async function loadInventory() {
             const { data } = await _supabase.from('inventory').select('item_name').order('item_name', { ascending: true });
             const select = document.getElementById('exp-item-select');
-            select.innerHTML = '<option value="">-- Choose Item --</option>';
+            select.innerHTML = '<option value="">-- Select Item --</option>';
             if(data) data.forEach(i => select.innerHTML += `<option value="${i.item_name}">${i.item_name}</option>`);
             select.innerHTML += `<option value="Other">Other (Transport/Rent)</option>`;
         }
 
         function toggleOtherBox() {
-            const isOther = document.getElementById('exp-item-select').value === "Other";
-            document.getElementById('other-note-container').classList.toggle('hidden', !isOther);
+            document.getElementById('other-note-container').classList.toggle('hidden', document.getElementById('exp-item-select').value !== "Other");
         }
 
-        function calcExpTotal() {
+        function calcExp() {
             const q = parseFloat(document.getElementById('exp-qty').value) || 0;
-            const p = parseFloat(document.getElementById('exp-unit-price').value) || 0;
-            document.getElementById('exp-total-display').innerText = `${(q * p).toFixed(0)} Birr`;
+            const p = parseFloat(document.getElementById('exp-price').value) || 0;
+            document.getElementById('exp-total').innerText = `${q * p} Birr`;
         }
 
         async function logPurchase() {
-            const itemName = document.getElementById('exp-item-select').value;
+            const item = document.getElementById('exp-item-select').value;
             const note = document.getElementById('exp-note').value;
             const qty = parseFloat(document.getElementById('exp-qty').value);
             const unit = document.getElementById('exp-unit-select').value;
-            const price = parseFloat(document.getElementById('exp-unit-price').value);
+            const price = parseFloat(document.getElementById('exp-price').value);
 
-            if(!itemName || !qty || !price) return alert("Fill all fields");
+            if(!item || !qty || !price) return alert("Fill all fields");
 
             const { error } = await _supabase.from('expenses').insert([{
-                item_name: itemName,
-                description: note,
-                amount_spent: qty * price,
-                quantity_bought: qty,
-                unit: unit,
-                bought_by: staffName
+                item_name: item, description: note, amount_spent: qty * price, quantity_bought: qty, unit: unit, bought_by: staffName
             }]);
 
             if(!error) {
-                alert("Expense Logged!");
+                alert("Logged!");
                 location.reload();
-            } else {
-                alert("Error: " + error.message);
             }
         }
 
+        updateUI();
         loadInventory();
     </script>
 </body>
