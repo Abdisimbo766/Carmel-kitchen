@@ -3,154 +3,140 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carmel - Burger, Kitchen, Cafe & Juice</title>
+    <title>Carmel | Digital Menu</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        body { background: #000; color: white; font-family: 'Inter', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        .glass-card { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 1.5rem; }
-        
-        /* Sidebar Navigation */
-        .nav-btn { background: transparent; border: 1px solid rgba(255,255,255,0.1); padding: 18px 10px; border-radius: 1rem; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); text-align: center; }
-        .nav-btn.active { background: #f97316; color: black; border-color: #f97316; font-weight: 900; box-shadow: 0 10px 20px -5px rgba(249, 115, 22, 0.3); }
-        
-        /* Menu Items */
-        .menu-item { background: #111; border: 1px solid rgba(255,255,255,0.05); padding: 16px 10px; border-radius: 1.25rem; transition: 0.2s; display: flex; flex-direction: column; justify-content: center; min-height: 90px; text-align: center; }
-        .menu-item:hover { border-color: #f97316; transform: translateY(-3px); background: #161616; }
-        .menu-item:active { transform: scale(0.95); }
-
+        body { background: #000; color: white; font-family: 'Inter', sans-serif; height: 100vh; overflow: hidden; }
+        .glass { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 1.5rem; }
+        .nav-btn { background: #111; border: 1px solid #222; padding: 18px 5px; border-radius: 12px; transition: 0.2s; text-align: center; cursor: pointer; }
+        .nav-btn.active { background: #f97316; color: black; border-color: #f97316; font-weight: 900; }
+        .item-card { background: #111; border: 1px solid #222; padding: 12px 6px; border-radius: 10px; font-size: 10px; text-align: center; min-height: 80px; display: flex; flex-direction: column; justify-content: center; transition: 0.2s; }
+        .item-card:hover { border-color: #f97316; }
+        #photo-display { width: 100%; height: 180px; object-fit: cover; border-radius: 1rem; border: 1px solid #222; margin-bottom: 1rem; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
     </style>
 </head>
-<body class="p-4 lg:p-6">
+<body class="p-4 flex flex-col" id="capture-area">
     
-    <header class="flex justify-between items-center mb-6">
+    <header class="flex justify-between items-start mb-4 border-b border-white/5 pb-3">
         <div>
-            <h1 class="text-2xl font-black text-orange-500 italic uppercase tracking-tighter">Carmel</h1>
-            <p class="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">Kitchen • Cafe • Juice</p>
-        </div>
-        <div class="glass-card px-4 py-2 flex items-center gap-3">
-            <div class="text-right">
-                <span id="cart-count" class="bg-orange-500 text-black text-[10px] font-black px-2 py-0.5 rounded-full">0</span>
-                <span class="text-xs font-bold ml-1">Items</span>
+            <h1 class="text-xl font-black text-orange-500 italic uppercase">CARMEL</h1>
+            <div class="mt-1">
+                <p class="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">CBE / Abyssinia / Telebirr</p>
+                <p class="text-xs font-black text-white">Account: Abdi Tesfaye</p>
             </div>
+        </div>
+        <div class="text-right">
+            <button onclick="takeScreenshot()" class="bg-white/10 hover:bg-white/20 px-3 py-1 rounded text-[9px] uppercase font-black mb-2">📸 Screenshot</button>
+            <div id="cart-total-top" class="text-xl font-black text-orange-500">0 Birr</div>
         </div>
     </header>
 
-    <div class="grid grid-cols-12 gap-4 lg:gap-6 flex-grow overflow-hidden">
+    <div class="grid grid-cols-12 gap-4 flex-grow overflow-hidden">
         
-        <div class="col-span-3 lg:col-span-2 flex flex-col gap-3 overflow-y-auto pr-2">
-            <button onclick="loadCategory('burger', this)" class="nav-btn active">🍔<br><span class="text-[10px] uppercase font-black block mt-1">Burgers</span></button>
-            <button onclick="loadCategory('Chicken, Wraps & Sandwiches', this)" class="nav-btn">🌯<br><span class="text-[10px] uppercase font-black block mt-1">Wraps</span></button>
-            <button onclick="loadCategory('pizza', this)" class="nav-btn">🍕<br><span class="text-[10px] uppercase font-black block mt-1">Pizza</span></button>
-            <button onclick="loadCategory('breakfast', this)" class="nav-btn">🍳<br><span class="text-[10px] uppercase font-black block mt-1">Breakfast</span></button>
-            <button onclick="loadCategory('juice', this)" class="nav-btn">🍹<br><span class="text-[10px] uppercase font-black block mt-1">Juice</span></button>
-            <button onclick="loadCategory('coffee&tea', this)" class="nav-btn">☕<br><span class="text-[10px] uppercase font-black block mt-1">Coffee</span></button>
-            <button onclick="loadCategory('discount Combos', this)" class="nav-btn">⭐<br><span class="text-[10px] uppercase font-black block mt-1">Offers</span></button>
+        <div class="col-span-3 lg:col-span-2 flex flex-col gap-2 overflow-y-auto pr-1">
+            <button onclick="loadCat('burger', this)" class="nav-btn active"><span class="text-[10px] uppercase font-black">Burgers</span></button>
+            <button onclick="loadCat('Chicken, Wraps & Sandwiches', this)" class="nav-btn"><span class="text-[10px] uppercase font-black">Wraps</span></button>
+            <button onclick="loadCat('pizza', this)" class="nav-btn"><span class="text-[10px] uppercase font-black">Pizza</span></button>
+            <button onclick="loadCat('breakfast', this)" class="nav-btn"><span class="text-[10px] uppercase font-black">Breakfast</span></button>
+            <button onclick="loadCat('juice', this)" class="nav-btn"><span class="text-[10px] uppercase font-black">Juice</span></button>
+            <button onclick="loadCat('coffee&tea', this)" class="nav-btn"><span class="text-[10px] uppercase font-black">Coffee</span></button>
         </div>
 
-        <div class="col-span-9 lg:col-span-7 overflow-y-auto pr-2">
-            <div id="product-grid" class="grid grid-cols-2 lg:grid-cols-3 gap-3">
-                </div>
+        <div class="col-span-9 lg:col-span-7 glass p-4 overflow-y-auto flex flex-col">
+            <img id="photo-display" src="https://images.unsplash.com/photo-1571091718767-18b5b1457add?q=80&w=1000&auto=format&fit=crop" alt="Food Photo">
+            
+            <div id="menu-grid" class="grid grid-cols-2 lg:grid-cols-4 gap-2"></div>
         </div>
 
-        <div class="hidden lg:flex lg:col-span-3 flex-col gap-4">
-            <div class="glass-card flex-grow flex flex-col overflow-hidden">
-                <div class="p-4 border-b border-white/5 bg-white/[0.01]">
-                    <h2 class="text-xs font-black uppercase text-orange-500">Your Selection</h2>
+        <div class="hidden lg:flex lg:col-span-3 flex-col gap-3">
+            <div class="glass flex-grow flex flex-col overflow-hidden border-orange-500/20">
+                <div class="p-3 border-b border-white/5 bg-white/[0.02] flex justify-between items-center">
+                    <span class="text-[10px] font-black uppercase text-orange-500">Selected Items</span>
+                    <button onclick="clearCart()" class="text-[9px] text-zinc-600 hover:text-white uppercase">Clear</button>
                 </div>
-                
-                <div id="cart-list" class="flex-grow overflow-y-auto p-4 space-y-3">
-                    <p class="text-zinc-600 text-center text-xs mt-10 italic">Select items to start your order</p>
-                </div>
-
-                <div class="p-5 bg-zinc-900/50">
-                    <div class="flex justify-between items-center mb-4">
-                        <span class="text-sm font-bold text-zinc-400">Total</span>
-                        <span id="grand-total" class="text-2xl font-black text-orange-500">0 Birr</span>
-                    </div>
-                    <button onclick="submitCustomerOrder()" class="w-full py-4 bg-orange-500 text-black font-black rounded-2xl uppercase text-xs tracking-widest hover:scale-[1.02] transition-transform">
-                        Send to Kitchen
+                <div id="cart-items" class="flex-grow overflow-y-auto p-3 space-y-2"></div>
+                <div class="p-4 bg-orange-500 text-black">
+                    <button onclick="sendToCashier()" class="w-full py-4 bg-black text-white font-black rounded-xl uppercase text-xs tracking-widest">
+                        Send to Cashier
                     </button>
                 </div>
             </div>
         </div>
-
     </div>
 
     <script>
         const _supabase = supabase.createClient("https://csdpoyqbkjljaqknunyv.supabase.co", "sb_publishable_GZ9zqNM1CPfdyaEhLY_pOg_Fs4CSfrC");
         
         const fullMenu = [
-            { c:'burger', n:'House Special Burger', p:650 }, { c:'burger', n:'Fasting Burger', p:390 }, { c:'burger', n:'Classic Beef Burger', p:490 }, { c:'burger', n:'Chessic Beef Burger ★', p:550 }, { c:'burger', n:'Spicy Hot Burger 🔥', p:550 }, { c:'burger', n:'Chicken Double Burger', p:590 }, { c:'burger', n:'Double Beef Burger', p:590 }, { c:'burger', n:'BBQ Juicy Burger', p:590 }, { c:'burger', n:'Mountain Burger (Taple) 🏔️', p:720 }, { c:'burger', n:'VIP Burger 🔥', p:790 }, { c:'burger', n:'2 Pc Special Bite', p:450 }, { c:'burger', n:'3 Pc Special Bite', p:550 }, { c:'burger', n:'5 Pc Special Bite', p:950 }, { c:'burger', n:'Chips 🍟', p:190 },
+            { c:'burger', n:'House Special Burger', p:650 }, { c:'burger', n:'Fasting Burger', p:390 }, { c:'burger', n:'Classic Beef Burger', p:490 }, { c:'burger', n:'Chessic Beef Burger ★', p:550 }, { c:'burger', n:'Spicy Hot Burger 🔥', p:550 }, { c:'burger', n:'Chicken Double Burger', p:590 }, { c:'burger', n:'Double Beef Burger', p:590 }, { c:'burger', n:'BBQ Juicy Burger', p:590 }, { c:'burger', n:'Mountain Burger (Taple) 🏔️', p:720 }, { c:'burger', n:'VIP Burger 🔥', p:790 }, { c:'burger', n:'2 Pc Special Bite Burger', p:450 }, { c:'burger', n:'3 Pc Special Bite Burger', p:550 }, { c:'burger', n:'5 Pc Special Bite Burger', p:950 }, { c:'burger', n:'Chips 🍟', p:190 },
             { c:'Chicken, Wraps & Sandwiches', n:'2 Pc Fried Chicken', p:490 }, { c:'Chicken, Wraps & Sandwiches', n:'3 Pc Fried Chicken', p:740 }, { c:'Chicken, Wraps & Sandwiches', n:'5 Pc Fried Chicken', p:1190 }, { c:'Chicken, Wraps & Sandwiches', n:'Beef Wrap', p:490 }, { c:'Chicken, Wraps & Sandwiches', n:'Chicken Wrap', p:490 }, { c:'Chicken, Wraps & Sandwiches', n:'Vegetable Wrap', p:350 }, { c:'Chicken, Wraps & Sandwiches', n:'Egg Sandwich', p:190 }, { c:'Chicken, Wraps & Sandwiches', n:'Vegetable Sandwich', p:290 }, { c:'Chicken, Wraps & Sandwiches', n:'Tuna Sandwich', p:440 },
-            { c:'discount Combos', n:'Kuriftu Combo', p:1290 }, { c:'discount Combos', n:'Kilole Combo 🍹', p:1590 }, { c:'discount Combos', n:'Calalaqa Combo', p:1290 }, { c:'discount Combos', n:'Hora Combo 🍹', p:1990 }, { c:'discount Combos', n:'Babogaya Combo', p:600 }, { c:'discount Combos', n:'Bishe Combo', p:600 },
-            { c:'pizza', n:'Special Pizza (Reg)', p:690 }, { c:'pizza', n:'Special Pizza (Per)', p:490 }, { c:'pizza', n:'Tuna Pizza (Reg)', p:670 }, { c:'pizza', n:'Beef Pizza (Reg)', p:650 }, { c:'pizza', n:'Chicken Pizza (Reg)', p:650 }, { c:'pizza', n:'Vegetable Pizza (Reg)', p:550 }, { c:'pizza', n:'Cheese Pizza (Reg)', p:550 },
-            { c:'breakfast', n:'Full Breakfast', p:150 }, { c:'breakfast', n:'Special Full', p:200 }, { c:'breakfast', n:'Chachabesa', p:200 }, { c:'breakfast', n:'Special Chachabesa', p:250 }, { c:'breakfast', n:'Fatria', p:250 }, { c:'breakfast', n:'Firfir', p:170 }, { c:'breakfast', n:'Tibs Firfir', p:290 }, { c:'breakfast', n:'Egg', p:170 }, { c:'breakfast', n:'Pasta', p:190 }, { c:'breakfast', n:'Tibs', p:450 }, { c:'breakfast', n:'Avocado Liblib', p:200 },
-            { c:'juice', n:'Avocado 🥑', p:180 }, { c:'juice', n:'Papaya 🥭', p:180 }, { c:'juice', n:'Pineapple 🍍', p:200 }, { c:'juice', n:'Mango 🥭', p:230 }, { c:'juice', n:'Strawberry 🍓', p:230 }, { c:'juice', n:'Mixed Juice 🍹', p:250 }, { c:'juice', n:'Banana Shake 🍌', p:200 }, { c:'juice', n:'Strawberry Shake 🍓', p:250 }, { c:'juice', n:'Mango Shake 🥭', p:250 }, { c:'juice', n:'Avocado+Choc Shake', p:270 }, { c:'juice', n:'Oreo + Choc 🍪', p:290 }, { c:'juice', n:'Carmel Special ⭐', p:320 }, { c:'juice', n:'Strawberry Mojito 🍓', p:200 },
-            { c:'coffee&tea', n:'Jebena Coffee ★', p:40 }, { c:'coffee&tea', n:'Machine Coffee ★', p:70 }, { c:'coffee&tea', n:'Macchiato ★', p:70 }, { c:'coffee&tea', n:'Cappuccino', p:100 }, { c:'coffee&tea', n:'Latte', p:100 }, { c:'coffee&tea', n:'Milk', p:70 }, { c:'coffee&tea', n:'Black Tea', p:40 }, { c:'coffee&tea', n:'Soft Drink', p:70 }, { c:'coffee&tea', n:'Water', p:35 }
+            { c:'pizza', n:'Special Pizza (Regular)', p:690 }, { c:'pizza', n:'Special Pizza (Personal)', p:490 }, { c:'pizza', n:'Tuna Pizza (Regular)', p:670 }, { c:'pizza', n:'Beef Pizza (Regular)', p:650 }, { c:'pizza', n:'Chicken Pizza (Regular)', p:650 }, { c:'pizza', n:'Vegetable Pizza (Regular)', p:550 }, { c:'pizza', n:'Cheese Pizza (Regular)', p:550 },
+            { c:'breakfast', n:'Full Breakfast', p:150 }, { c:'breakfast', n:'Special Full Breakfast', p:200 }, { c:'breakfast', n:'Chachabesa', p:200 }, { c:'breakfast', n:'Special Chachabesa', p:250 }, { c:'breakfast', n:'Fatria', p:250 }, { c:'breakfast', n:'Firfir', p:170 }, { c:'breakfast', n:'Tibs Firfir', p:290 }, { c:'breakfast', n:'Tibs', p:450 },
+            { c:'juice', n:'Avocado 🥑', p:180 }, { c:'juice', n:'Mixed Juice 🍹', p:250 }, { c:'juice', n:'Carmel Special Shake ⭐', p:320 }, { c:'juice', n:'Strawberry Mojito 🍓', p:200 }, { c:'juice', n:'Lemon Mint Mojito 🍋', p:200 },
+            { c:'coffee&tea', n:'Jebena Coffee ★', p:40 }, { c:'coffee&tea', n:'Macchiato ★', p:70 }, { c:'coffee&tea', n:'Latte', p:100 }, { c:'coffee&tea', n:'Black Tea', p:40 }, { c:'coffee&tea', n:'Water', p:35 }
         ];
 
         let cart = [];
 
-        function loadCategory(cat, btn) {
+        function loadCat(cat, btn) {
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            const grid = document.getElementById('product-grid');
+            const grid = document.getElementById('menu-grid');
             grid.innerHTML = '';
             fullMenu.filter(i => i.c === cat).forEach(item => {
-                grid.innerHTML += `
-                    <div onclick='addToCart(${JSON.stringify(item)})' class="menu-item cursor-pointer">
-                        <span class="text-[11px] font-bold uppercase leading-tight mb-2">${item.n}</span>
-                        <span class="text-orange-500 font-black">${item.p} <span class="text-[8px] uppercase">Birr</span></span>
-                    </div>`;
+                grid.innerHTML += `<button onclick='add(${JSON.stringify(item)})' class="item-card font-black uppercase text-white"><span>${item.n}</span><span class="text-orange-500 mt-1">${item.p}</span></button>`;
             });
         }
 
-        function addToCart(item) {
-            const found = cart.find(i => i.n === item.n);
-            if(found) found.qty++; else cart.push({...item, qty: 1});
-            updateUI();
+        function add(item) {
+            const f = cart.find(i => i.n === item.n);
+            if(f) f.qty++; else cart.push({...item, qty: 1});
+            // Switch photo based on category
+            const photo = document.getElementById('photo-display');
+            if(item.c === 'burger') photo.src = "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800";
+            if(item.c === 'juice') photo.src = "https://images.unsplash.com/photo-1613478223719-2ab802602423?w=800";
+            if(item.c === 'pizza') photo.src = "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800";
+            render();
         }
 
-        function updateUI() {
-            const list = document.getElementById('cart-list');
+        function render() {
+            const list = document.getElementById('cart-items');
             list.innerHTML = '';
             let total = 0;
-            let count = 0;
-
             cart.forEach((item, idx) => {
                 total += (item.p * item.qty);
-                count += item.qty;
-                list.innerHTML += `
-                    <div class="flex justify-between items-center animate-in fade-in slide-in-from-right-2">
-                        <div>
-                            <p class="text-[10px] font-black uppercase">${item.n}</p>
-                            <p class="text-[10px] text-orange-500">${item.qty} x ${item.p}</p>
-                        </div>
-                        <button onclick="cart.splice(${idx},1);updateUI()" class="text-zinc-700 hover:text-white">×</button>
-                    </div>`;
+                list.innerHTML += `<div class="flex justify-between items-center bg-white/5 p-2 rounded-lg text-[10px] font-bold"><span>${item.qty}x ${item.n}</span><button onclick="cart.splice(${idx},1);render()" class="text-zinc-600 px-2">×</button></div>`;
             });
-
-            if(cart.length === 0) list.innerHTML = '<p class="text-zinc-600 text-center text-xs mt-10 italic">Select items to start your order</p>';
-            document.getElementById('grand-total').innerText = total + " Birr";
-            document.getElementById('cart-count').innerText = count;
+            document.getElementById('cart-total-top').innerText = total + " Birr";
         }
 
-        async function submitCustomerOrder() {
+        function clearCart() { cart = []; render(); }
+
+        async function sendToCashier() {
             if(cart.length === 0) return;
-            for(const i of cart) {
-                await _supabase.from('orders').insert([{ 
-                    item_name: i.n, quantity: i.qty, total_price: i.p * i.qty, status: 'pending' 
-                }]);
+            if(confirm("Send this order to the Cashier?")) {
+                for(const i of cart) {
+                    await _supabase.from('orders').insert([{ item_name: i.n, quantity: i.qty, total_price: i.p * i.qty, status: 'pending' }]);
+                }
+                alert("Order sent! Please proceed to the cashier for payment.");
+                clearCart();
             }
-            alert("Your order has been sent to the kitchen! Please wait.");
-            cart = [];
-            updateUI();
         }
 
-        loadCategory('burger', document.querySelector('.nav-btn'));
+        function takeScreenshot() {
+            html2canvas(document.getElementById("capture-area")).then(canvas => {
+                let link = document.createElement('a');
+                link.download = 'Carmel-Order.png';
+                link.href = canvas.toDataURL();
+                link.click();
+            });
+        }
+
+        loadCat('burger', document.querySelector('.nav-btn'));
     </script>
 </body>
 </html>
