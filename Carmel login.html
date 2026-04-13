@@ -55,9 +55,7 @@
             <input type="password" id="reg-pass" placeholder="የይለፍ ቃል ፍጠር" class="w-full border border-white/10 p-4 rounded-2xl focus:outline-none focus:border-orange-500">
             
             <div class="pt-2">
-                <input type="text" id="admin-code" placeholder="Admin Security Code" 
-                    class="w-full border border-orange-500/30 p-4 rounded-2xl text-orange-400 font-bold focus:outline-none">
-                <p class="text-[9px] text-orange-500/50 mt-2 text-center italic">* Owner Code Required</p>
+                <input type="text" id="admin-code" placeholder="Admin Security Code" class="w-full border border-orange-500/30 p-4 rounded-2xl text-orange-400 font-bold focus:outline-none">
             </div>
             
             <button onclick="handleRegister()" class="w-full bg-zinc-800 hover:bg-zinc-700 py-4 rounded-2xl font-black transition-all active:scale-95 text-sm uppercase">አካውንት ክፈት ✅</button>
@@ -67,9 +65,7 @@
     </div>
 
     <script>
-        const SUPABASE_URL = "https://csdpoyqbkjljaqknunyv.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_GZ9zqNM1CPfdyaEhLY_pOg_Fs4CSfrC";
-        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const _supabase = supabase.createClient("https://csdpoyqbkjljaqknunyv.supabase.co", "sb_publishable_GZ9zqNM1CPfdyaEhLY_pOg_Fs4CSfrC");
 
         function toggleTab(type) {
             const isLogin = type === 'login';
@@ -87,34 +83,21 @@
             const role = document.getElementById('reg-role').value;
             const adminCode = document.getElementById('admin-code').value;
 
-            if (adminCode !== "CARMEL@321") {
-                alert("የተሳሳተ የባለቤት መለያ ቁጥር ነው!");
-                return;
-            }
-
+            if (adminCode !== "CARMEL@321") return alert("የተሳሳተ የባለቤት መለያ ቁጥር ነው!");
             if(!name || !user || !pass) return alert("እባክዎ ሁሉንም ይሙሉ!");
 
-            // Check if this role is already registered
-            const { data: existingRole } = await _supabase
-                .from('staff')
-                .select('role')
-                .eq('role', role)
-                .maybeSingle();
+            const { data: existingRole } = await _supabase.from('staff').select('role').eq('role', role).maybeSingle();
+            if (existingRole) return alert(`ስህተት፦ ለዚህ ክፍል አካውንት ቀድሞ ተፈጥሯል!`);
 
-            if (existingRole) {
-                alert(`ስህተት፦ ለዚህ ክፍል (${role.replace('.html', '')}) አካውንት ቀድሞ ተፈጥሯል!`);
-                return;
-            }
-
-            const { error } = await _supabase
-                .from('staff')
-                .insert([{ full_name: name, username: user, password: pass, role: role }]);
+            const { error } = await _supabase.from('staff').insert([{ full_name: name, username: user, password: pass, role: role }]);
 
             if (error) {
                 alert("ስህተት፦ ይህ የተጠቃሚ ስም ተይዟል");
             } else {
-                alert("አካውንት ተፈጥሯል! አሁን መግባት ይችላሉ።");
-                toggleTab('login');
+                // SUCCESS: Save name to session and go
+                sessionStorage.setItem('isLogged', 'true');
+                sessionStorage.setItem('staffName', name); 
+                window.location.href = role;
             }
         }
 
@@ -122,19 +105,16 @@
             const user = document.getElementById('log-user').value;
             const pass = document.getElementById('log-pass').value;
 
-            const { data, error } = await _supabase
-                .from('staff')
-                .select('*')
-                .eq('username', user)
-                .eq('password', pass)
-                .maybeSingle();
+            const { data, error } = await _supabase.from('staff').select('*').eq('username', user).eq('password', pass).maybeSingle();
 
             if (data) {
+                // SUCCESS: Save name to session and go
                 sessionStorage.setItem('isLogged', 'true');
+                sessionStorage.setItem('staffName', data.full_name); 
                 window.location.href = data.role; 
             } else {
                 document.getElementById('msg').innerText = "የተሳሳተ የተጠቃሚ ስም ወይም የይለፍ ቃል!";
-                document.getElementById('msg').className = "text-center text-[10px] mt-8 font-bold uppercase text-red-500";
+                document.getElementById('msg').className = "text-center text-[10px] mt-8 font-bold text-red-500 uppercase";
             }
         }
     </script>
