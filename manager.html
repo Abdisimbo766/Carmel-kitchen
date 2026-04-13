@@ -3,61 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carmel Cashier Terminal</title>
+    <title>Carmel Manager Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { background: #000; color: white; font-family: 'Inter', sans-serif; }
-        .card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1.5rem; }
-        .input-field { background: #111; border: 1px solid rgba(255, 255, 255, 0.1); padding: 0.75rem; border-radius: 0.75rem; font-size: 0.875rem; width: 100%; color: white; }
-        .input-field:focus { border-color: #f97316; outline: none; }
-        .hidden { display: none; }
+        .card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 2rem; }
+        .status-badge { padding: 4px 8px; border-radius: 6px; font-size: 8px; font-weight: 900; text-transform: uppercase; }
+        .filter-btn { font-size: 10px; font-weight: 900; padding: 6px 20px; border-radius: 9999px; border: 1px solid #f97316; transition: 0.3s; }
+        .filter-inactive { border-color: rgba(255,255,255,0.1); color: #666; }
+        .filter-active { background: #f97316; color: black; }
     </style>
 </head>
-<body class="p-4">
-    <div class="max-w-4xl mx-auto">
-        <header class="flex justify-between items-center mb-8 border-b border-orange-500/20 pb-4">
-            <h1 class="text-3xl font-black italic text-orange-500 uppercase">CASHIER</h1>
-            <p id="staff-name-display" class="text-xs text-zinc-500 font-bold uppercase"></p>
+<body class="p-6">
+    <div class="max-w-7xl mx-auto">
+        <header class="flex justify-between items-center mb-12 border-b border-orange-500/20 pb-6">
+            <div>
+                <h1 class="text-4xl font-black italic text-orange-500 uppercase tracking-tighter">MANAGER HUB</h1>
+                <div class="flex gap-2 mt-4">
+                    <button onclick="setTimeFilter(1)" id="btn-1" class="filter-btn filter-active">1 DAY</button>
+                    <button onclick="setTimeFilter(7)" id="btn-7" class="filter-btn filter-inactive">7 DAYS</button>
+                    <button onclick="setTimeFilter(30)" id="btn-30" class="filter-btn filter-inactive">30 DAYS</button>
+                </div>
+            </div>
+            
+            <div class="flex gap-8">
+                <div class="text-right">
+                    <p id="revenue" class="text-2xl font-bold text-white">0 Birr</p>
+                    <p id="sales-label" class="text-[10px] text-zinc-500 uppercase font-black tracking-widest">Today's Sales</p>
+                </div>
+                <div class="text-right border-l border-white/10 pl-8">
+                    <p id="net-profit" class="text-2xl font-black text-green-400">0 Birr</p>
+                    <p class="text-[10px] text-zinc-500 uppercase font-black tracking-widest">Net Profit</p>
+                </div>
+            </div>
         </header>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="card p-6 border-white/5">
-                <h2 class="text-orange-500 font-black mb-4 uppercase text-xs italic">Submit Order</h2>
-                <div class="space-y-4">
-                    <input id="item-search" type="text" placeholder="Menu Item Name" class="input-field">
-                    <input id="order-qty" type="number" value="1" class="input-field">
-                    <button onclick="placeOrder()" class="w-full bg-white text-black font-black py-4 rounded-xl uppercase text-xs">Submit Order</button>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+            <div class="space-y-10">
+                <div>
+                    <h2 class="text-xs font-black uppercase text-orange-500/50 mb-4 ml-2 tracking-widest">Staff Control</h2>
+                    <div id="staff-list" class="space-y-4"></div>
+                </div>
+                
+                <div>
+                    <h2 class="text-xs font-black uppercase text-red-500/50 mb-4 ml-2 tracking-widest">Recent Records</h2>
+                    <div class="card p-6">
+                        <div id="expense-list" class="space-y-5 text-sm"></div>
+                    </div>
                 </div>
             </div>
 
-            <div class="card p-6 border-orange-500/10 shadow-[0_0_20px_rgba(249,115,22,0.05)]">
-                <h2 class="text-orange-500 font-black mb-4 uppercase text-xs italic">Log Expense</h2>
-                <div class="space-y-4">
-                    <select id="exp-item-select" class="input-field" onchange="toggleOtherBox()">
-                        <option value="">Loading Inventory...</option>
-                    </select>
-
-                    <div id="other-note-container" class="hidden">
-                        <input id="exp-note" type="text" placeholder="Note (e.g. Transport/Rent)" class="input-field border-orange-500/40">
-                    </div>
-                    
-                    <div class="grid grid-cols-3 gap-2">
-                        <input id="exp-qty" type="number" oninput="calcTotal()" placeholder="Qty" class="input-field">
-                        
-                        <select id="exp-unit-select" class="input-field">
-                            <option value="pcs">pcs</option>
-                            <option value="kg">kg</option>
-                            <option value="liter">liter</option>
-                            <option value="pkt">pkt</option>
-                        </select>
-
-                        <input id="exp-unit-price" type="number" oninput="calcTotal()" placeholder="Price" class="input-field">
-                    </div>
-
-                    <div class="bg-orange-500/5 p-4 rounded-xl border border-orange-500/20 text-center text-2xl font-black text-orange-500" id="total-display">0 Birr</div>
-
-                    <button id="submit-btn" onclick="logPurchase()" class="w-full bg-orange-500 text-black font-black py-4 rounded-xl uppercase text-xs">Submit & Update</button>
+            <div class="lg:col-span-2">
+                <h2 class="text-xs font-black uppercase text-orange-500/50 mb-4 ml-2 tracking-widest">Stock Inventory</h2>
+                <div class="card p-8">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="text-[10px] text-zinc-500 border-b border-white/10 uppercase font-black">
+                                <th class="pb-4">Item Name</th>
+                                <th class="pb-4">Quantity</th>
+                                <th class="pb-4">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stock-list"></tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -65,72 +74,91 @@
 
     <script>
         const _supabase = supabase.createClient("https://csdpoyqbkjljaqknunyv.supabase.co", "sb_publishable_GZ9zqNM1CPfdyaEhLY_pOg_Fs4CSfrC");
-        const staffName = sessionStorage.getItem('staffName') || 'CASHIER';
-        document.getElementById('staff-name-display').innerText = `Staff: ${staffName}`;
-        
-        async function loadInventory() {
-            const { data } = await _supabase.from('inventory').select('item_name').order('item_name', { ascending: true });
-            const select = document.getElementById('exp-item-select');
-            select.innerHTML = '<option value="">-- Choose Item --</option>';
-            if(data) data.forEach(i => select.innerHTML += `<option value="${i.item_name}">${i.item_name}</option>`);
-            select.innerHTML += `<option value="Other">Other (Transport/Rent)</option>`;
+        let daysFilter = 1;
+
+        function setTimeFilter(days) {
+            daysFilter = days;
+            [1, 7, 30].forEach(d => {
+                document.getElementById(`btn-${d}`).className = d === days ? 'filter-btn filter-active' : 'filter-btn filter-inactive';
+            });
+            refreshData();
         }
 
-        function toggleOtherBox() {
-            const isOther = document.getElementById('exp-item-select').value === "Other";
-            document.getElementById('other-note-container').classList.toggle('hidden', !isOther);
+        async function refreshData() {
+            const filterDate = new Date();
+            filterDate.setDate(filterDate.getDate() - (daysFilter - 1));
+            filterDate.setHours(0,0,0,0);
+            const iso = filterDate.toISOString();
+
+            const { data: expData } = await _supabase.from('expenses').select('*').gte('created_at', iso).order('created_at', { ascending: false });
+            const { data: revData } = await _supabase.from('orders').select('total_price').eq('status', 'done').gte('created_at', iso);
+            const { data: stfData } = await _supabase.from('staff').select('*');
+            const { data: stockData } = await _supabase.from('inventory').select('*').order('item_name', { ascending: true });
+
+            let sales = 0; if(revData) revData.forEach(r => sales += r.total_price);
+            let exps = 0; if(expData) expData.forEach(e => exps += e.amount_spent);
+            
+            document.getElementById('revenue').innerText = `${sales} Birr`;
+            document.getElementById('net-profit').innerText = `${sales - exps} Birr`;
+
+            // Render Records
+            const expDiv = document.getElementById('expense-list');
+            expDiv.innerHTML = '';
+            if(expData) expData.slice(0, 10).forEach(e => {
+                expDiv.innerHTML += `
+                    <div class="border-b border-white/5 pb-2">
+                        <div class="flex justify-between font-bold">
+                            <p class="text-white uppercase">${e.item_name}</p>
+                            <p class="text-red-500">-${e.amount_spent}</p>
+                        </div>
+                        ${e.description ? `<p class="text-[10px] text-orange-500 italic font-bold">Note: ${e.description}</p>` : ''}
+                        <p class="text-[8px] text-zinc-600 uppercase font-black">${e.bought_by || 'Staff'}</p>
+                    </div>`;
+            });
+
+            // Render Staff
+            const stfDiv = document.getElementById('staff-list');
+            stfDiv.innerHTML = '';
+            if(stfData) stfData.forEach(s => {
+                stfDiv.innerHTML += `
+                    <div class="card p-4 flex justify-between items-center">
+                        <div>
+                            <p class="text-[8px] text-orange-500 uppercase font-black">${s.role}</p>
+                            <p class="font-bold text-white">${s.full_name}</p>
+                        </div>
+                        <button onclick="delStaff('${s.id}')" class="text-red-500 text-[10px] font-black hover:bg-red-500/10 p-2 rounded-lg">RESET</button>
+                    </div>`;
+            });
+
+            // Render Inventory
+            const sTable = document.getElementById('stock-list');
+            sTable.innerHTML = '';
+            if(stockData) stockData.forEach(i => {
+                const low = i.quantity <= i.min_limit;
+                sTable.innerHTML += `
+                    <tr class="border-b border-white/5 hover:bg-white/5">
+                        <td class="py-4 font-bold text-zinc-300 uppercase">${i.item_name}</td>
+                        <td class="py-4 font-black ${low ? 'text-red-500' : 'text-white'} text-lg">
+                            ${i.quantity} <span class="text-[10px] text-zinc-600">${i.unit}</span>
+                        </td>
+                        <td class="py-4">
+                            <span class="${low ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'} status-badge">
+                                ${low ? 'Low Stock' : 'Ok Stock'}
+                            </span>
+                        </td>
+                    </tr>`;
+            });
         }
 
-        function calcTotal() {
-            const q = parseFloat(document.getElementById('exp-qty').value) || 0;
-            const p = parseFloat(document.getElementById('exp-unit-price').value) || 0;
-            document.getElementById('total-display').innerText = `${(q * p).toFixed(0)} Birr`;
-        }
-
-        async function logPurchase() {
-            const itemName = document.getElementById('exp-item-select').value;
-            const note = document.getElementById('exp-note').value;
-            const qty = parseFloat(document.getElementById('exp-qty').value);
-            const unit = document.getElementById('exp-unit-select').value; // Get the chosen unit
-            const price = parseFloat(document.getElementById('exp-unit-price').value);
-            const btn = document.getElementById('submit-btn');
-
-            if(!itemName || !qty || !price) return alert("Please fill all fields!");
-
-            btn.disabled = true;
-            btn.innerText = "SAVING...";
-
-            const { error } = await _supabase.from('expenses').insert([{
-                item_name: itemName,
-                description: note,
-                amount_spent: qty * price,
-                quantity_bought: qty,
-                unit: unit, // Now we are sending the unit properly!
-                bought_by: staffName
-            }]);
-
-            if (error) {
-                alert("Database Error: " + error.message);
-                btn.disabled = false;
-                btn.innerText = "SUBMIT & UPDATE";
-                return;
+        async function delStaff(id) {
+            if(confirm("Confirm: Reset staff account?")) {
+                await _supabase.from('staff').delete().eq('id', id);
+                refreshData();
             }
-
-            // Update inventory if it's a specific stock item
-            if (itemName !== "Other") {
-                const { data: inv } = await _supabase.from('inventory').select('quantity').eq('item_name', itemName).single();
-                if(inv) {
-                    await _supabase.from('inventory').update({ quantity: inv.quantity + qty }).eq('item_name', itemName);
-                }
-            }
-
-            alert("Successfully saved!");
-            location.reload();
         }
 
-        async function placeOrder() { alert("Order system active"); }
-
-        loadInventory();
+        refreshData();
+        setInterval(refreshData, 30000);
     </script>
 </body>
 </html>
