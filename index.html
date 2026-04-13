@@ -544,23 +544,3 @@ window.closePayment = () => {
 	
 </body>
 </html>
-function placeOrder() {
-    if (cart.length === 0) return alert("Cart is empty!");
-    
-    // Create the order object
-    const newOrder = {
-        id: Math.floor(1000 + Math.random() * 9000), // Random Order ID
-        items: cart.join(", "),
-        total: total,
-        time: new Date().toLocaleTimeString(),
-        status: 'pending'
-    };
-
-    // Save to browser memory (LocalStorage)
-    let orders = JSON.parse(localStorage.getItem('onlineOrders') || '[]');
-    orders.push(newOrder);
-    localStorage.setItem('onlineOrders', JSON.stringify(orders));
-
-    alert("Order Sent! Order #" + newOrder.id);
-    resetCart(); // Clear the cart
-}
