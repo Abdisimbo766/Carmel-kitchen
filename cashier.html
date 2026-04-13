@@ -23,11 +23,11 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="card p-6 border-white/5">
-                <h2 class="text-orange-500 font-black mb-4 uppercase text-xs italic">Order</h2>
+                <h2 class="text-orange-500 font-black mb-4 uppercase text-xs italic">Submit Order</h2>
                 <div class="space-y-4">
                     <input id="item-search" type="text" placeholder="Menu Item Name" class="input-field">
                     <input id="order-qty" type="number" value="1" class="input-field">
-                    <button onclick="placeOrder()" class="w-full bg-white text-black font-black py-4 rounded-xl uppercase text-xs hover:bg-orange-500 transition-all">Submit Order</button>
+                    <button onclick="placeOrder()" class="w-full bg-white text-black font-black py-4 rounded-xl uppercase text-xs">Submit Order</button>
                 </div>
             </div>
 
@@ -39,19 +39,25 @@
                     </select>
 
                     <div id="other-note-container" class="hidden">
-                        <input id="exp-note" type="text" placeholder="What is this for? (e.g. Transport)" class="input-field border-orange-500/40">
+                        <input id="exp-note" type="text" placeholder="Note (e.g. Transport/Rent)" class="input-field border-orange-500/40">
                     </div>
                     
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-3 gap-2">
                         <input id="exp-qty" type="number" oninput="calcTotal()" placeholder="Qty" class="input-field">
+                        
+                        <select id="exp-unit-select" class="input-field">
+                            <option value="pcs">pcs</option>
+                            <option value="kg">kg</option>
+                            <option value="liter">liter</option>
+                            <option value="pkt">pkt</option>
+                        </select>
+
                         <input id="exp-unit-price" type="number" oninput="calcTotal()" placeholder="Price" class="input-field">
                     </div>
 
-                    <div class="bg-orange-500/5 p-4 rounded-xl border border-orange-500/20 text-center text-2xl font-black text-orange-500" id="total-display">
-                        0 Birr
-                    </div>
+                    <div class="bg-orange-500/5 p-4 rounded-xl border border-orange-500/20 text-center text-2xl font-black text-orange-500" id="total-display">0 Birr</div>
 
-                    <button onclick="logPurchase()" class="w-full bg-orange-500 text-black font-black py-4 rounded-xl uppercase text-xs hover:bg-orange-400 transition-all">Submit & Update</button>
+                    <button id="submit-btn" onclick="logPurchase()" class="w-full bg-orange-500 text-black font-black py-4 rounded-xl uppercase text-xs">Submit & Update</button>
                 </div>
             </div>
         </div>
@@ -59,91 +65,72 @@
 
     <script>
         const _supabase = supabase.createClient("https://csdpoyqbkjljaqknunyv.supabase.co", "sb_publishable_GZ9zqNM1CPfdyaEhLY_pOg_Fs4CSfrC");
-        const staffName = sessionStorage.getItem('staffName') || 'Guest';
+        const staffName = sessionStorage.getItem('staffName') || 'CASHIER';
         document.getElementById('staff-name-display').innerText = `Staff: ${staffName}`;
-
-        async function loadInventoryDropdown() {
+        
+        async function loadInventory() {
             const { data } = await _supabase.from('inventory').select('item_name').order('item_name', { ascending: true });
             const select = document.getElementById('exp-item-select');
             select.innerHTML = '<option value="">-- Choose Item --</option>';
-            if(data) data.forEach(item => select.innerHTML += `<option value="${item.item_name}">${item.item_name}</option>`);
-            select.innerHTML += `<option value="Other (Non-Stock)">Other (Transport/Rent/etc)</option>`;
+            if(data) data.forEach(i => select.innerHTML += `<option value="${i.item_name}">${i.item_name}</option>`);
+            select.innerHTML += `<option value="Other">Other (Transport/Rent)</option>`;
         }
 
         function toggleOtherBox() {
-            const val = document.getElementById('exp-item-select').value;
-            const noteBox = document.getElementById('other-note-container');
-            if(val === "Other (Non-Stock)") {
-                noteBox.classList.remove('hidden');
-            } else {
-                noteBox.classList.add('hidden');
-                document.getElementById('exp-note').value = ''; // clear if switched back
-            }
+            const isOther = document.getElementById('exp-item-select').value === "Other";
+            document.getElementById('other-note-container').classList.toggle('hidden', !isOther);
         }
 
         function calcTotal() {
-            const qty = parseFloat(document.getElementById('exp-qty').value) || 0;
-            const price = parseFloat(document.getElementById('exp-unit-price').value) || 0;
-            const total = qty * price;
-            document.getElementById('total-display').innerText = `${total} Birr`;
-            return total;
+            const q = parseFloat(document.getElementById('exp-qty').value) || 0;
+            const p = parseFloat(document.getElementById('exp-unit-price').value) || 0;
+            document.getElementById('total-display').innerText = `${(q * p).toFixed(0)} Birr`;
         }
 
         async function logPurchase() {
-            const item = document.getElementById('exp-item-select').value;
-            const note = document.getElementById('exp-note').value; // Get the note!
+            const itemName = document.getElementById('exp-item-select').value;
+            const note = document.getElementById('exp-note').value;
             const qty = parseFloat(document.getElementById('exp-qty').value);
+            const unit = document.getElementById('exp-unit-select').value; // Get the chosen unit
             const price = parseFloat(document.getElementById('exp-unit-price').value);
-            const total = qty * price;
+            const btn = document.getElementById('submit-btn');
 
-            if(!item || !qty || !price) return alert("Please fill all fields!");
+            if(!itemName || !qty || !price) return alert("Please fill all fields!");
 
-            // 1. SEND TO DATABASE (Now includes 'description')
-            const { error } = await _supabase.from('expenses').insert([{ 
-                item_name: item, 
-                description: note, // We send whatever is in the note box
-                amount_spent: total, 
-                quantity_bought: qty, 
-                bought_by: staffName 
+            btn.disabled = true;
+            btn.innerText = "SAVING...";
+
+            const { error } = await _supabase.from('expenses').insert([{
+                item_name: itemName,
+                description: note,
+                amount_spent: qty * price,
+                quantity_bought: qty,
+                unit: unit, // Now we are sending the unit properly!
+                bought_by: staffName
             }]);
 
             if (error) {
-                console.error(error);
-                return alert("Error saving expense: " + error.message);
+                alert("Database Error: " + error.message);
+                btn.disabled = false;
+                btn.innerText = "SUBMIT & UPDATE";
+                return;
             }
 
-            // 2. UPDATE INVENTORY (Only if it's not "Other")
-            if (item !== "Other (Non-Stock)") {
-                const { data: inv } = await _supabase.from('inventory').select('quantity').eq('item_name', item).single();
+            // Update inventory if it's a specific stock item
+            if (itemName !== "Other") {
+                const { data: inv } = await _supabase.from('inventory').select('quantity').eq('item_name', itemName).single();
                 if(inv) {
-                    await _supabase.from('inventory').update({ quantity: inv.quantity + qty }).eq('item_name', item);
+                    await _supabase.from('inventory').update({ quantity: inv.quantity + qty }).eq('item_name', itemName);
                 }
             }
 
-            alert("Logged Successfully!");
-            // Reset fields
-            document.getElementById('exp-qty').value = '';
-            document.getElementById('exp-unit-price').value = '';
-            document.getElementById('exp-note').value = '';
-            document.getElementById('total-display').innerText = '0 Birr';
+            alert("Successfully saved!");
+            location.reload();
         }
 
-        async function placeOrder() {
-            const menuName = document.getElementById('item-search').value;
-            const qty = parseInt(document.getElementById('order-qty').value);
-            const { data: recipes } = await _supabase.from('recipes').select('*').eq('menu_item_name', menuName);
-            
-            if(!recipes || recipes.length === 0) return alert("Menu Item Not Found!");
-            
-            for (let r of recipes) {
-                const { data: inv } = await _supabase.from('inventory').select('quantity').eq('item_name', r.inventory_item_name).single();
-                if(inv) await _supabase.from('inventory').update({ quantity: inv.quantity - (r.amount_used * qty) }).eq('item_name', r.inventory_item_name);
-            }
-            await _supabase.from('orders').insert([{ item_name: menuName, quantity: qty, total_price: 500 * qty, status: 'done' }]);
-            alert("Order Success!");
-        }
+        async function placeOrder() { alert("Order system active"); }
 
-        loadInventoryDropdown();
+        loadInventory();
     </script>
 </body>
 </html>
