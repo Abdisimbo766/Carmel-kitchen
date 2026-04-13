@@ -11,7 +11,8 @@
         body { background: #000; color: white; font-family: 'Inter', sans-serif; }
         .card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1.5rem; }
         .input-field { background: #111; border: 1px solid rgba(255, 255, 255, 0.1); padding: 0.75rem; border-radius: 0.75rem; font-size: 0.875rem; width: 100%; color: white; }
-        .input-field:focus { border-color: #f97316; outline: none; }
+        .btn-confirm { background: #fff; color: #000; font-weight: 900; transition: 0.3s; }
+        .btn-confirm:hover { background: #f97316; color: #fff; }
         .hidden { display: none; }
     </style>
 </head>
@@ -26,39 +27,38 @@
             <div class="flex gap-6 items-center">
                 <div class="text-right">
                     <p id="daily-count" class="text-xl font-black text-white">0</p>
-                    <p class="text-[9px] text-zinc-500 uppercase font-black">Daily Orders</p>
+                    <p class="text-[9px] text-zinc-500 uppercase font-black tracking-widest">Total Orders</p>
                 </div>
                 <div class="text-right">
                     <p id="daily-money" class="text-xl font-black text-orange-500">0 Birr</p>
-                    <p class="text-[9px] text-zinc-500 uppercase font-black">Daily Revenue</p>
+                    <p class="text-[9px] text-zinc-500 uppercase font-black tracking-widest">Revenue</p>
                 </div>
                 <button onclick="downloadSales()" class="bg-zinc-800 p-3 rounded-lg hover:bg-zinc-700">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M224,144v64a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V144a8,8,0,0,1,16,0v56H208V144a8,8,0,0,1,16,0Zm-101.65,13.66a8,8,0,0,0,11.3,0l40-40a8,8,0,0,0-11.3-11.32L136,132.69V40a8,8,0,0,0-16,0v92.69L93.66,106.34a8,8,0,0,0-11.32,11.32Z"></path></svg>
                 </button>
-                <button onclick="clearDailySales()" class="text-zinc-700 hover:text-red-500">
+                <button onclick="clearDailySales()" class="text-zinc-800 hover:text-red-500">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192ZM112,104v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Z"></path></svg>
                 </button>
             </div>
         </header>
 
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
             
-            <div class="lg:col-span-1">
+            <div class="lg:col-span-4">
                 <h2 class="text-xs font-black uppercase text-orange-500 mb-4 ml-2 tracking-widest">Incoming Orders</h2>
                 <div id="order-queue" class="space-y-4">
-                    <p class="text-xs text-zinc-600 italic p-4">Waiting for new orders...</p>
-                </div>
+                    </div>
             </div>
 
-            <div class="lg:col-span-1">
-                <h2 class="text-xs font-black uppercase text-zinc-500 mb-4 ml-2 tracking-widest">Expense</h2>
-                <div class="card p-6 border-orange-500/10">
+            <div class="lg:col-span-3">
+                <h2 class="text-xs font-black uppercase text-zinc-500 mb-4 ml-2 tracking-widest">Log Expense</h2>
+                <div class="card p-6 border-white/5">
                     <div class="space-y-3">
                         <select id="exp-item-select" class="input-field" onchange="toggleOtherBox()">
-                            <option value="">Loading...</option>
+                            <option value="">Loading Inventory...</option>
                         </select>
                         <div id="other-note-container" class="hidden">
-                            <input id="exp-note" type="text" placeholder="Note (Transport/Rent)" class="input-field border-orange-500/40">
+                            <input id="exp-note" type="text" placeholder="Note (Transport/Rent)" class="input-field border-orange-500/30">
                         </div>
                         <div class="grid grid-cols-3 gap-2">
                             <input id="exp-qty" type="number" oninput="calcExp()" placeholder="Qty" class="input-field">
@@ -67,16 +67,15 @@
                             </select>
                             <input id="exp-price" type="number" oninput="calcExp()" placeholder="Price" class="input-field">
                         </div>
-                        <p id="exp-total" class="text-center text-sm font-bold text-orange-500">0 Birr</p>
-                        <button onclick="logPurchase()" class="w-full bg-orange-500 text-black font-black py-3 rounded-xl uppercase text-xs">Log Expense</button>
+                        <button onclick="logPurchase()" class="w-full bg-orange-500 text-black font-black py-3 rounded-xl uppercase text-[10px]">Save Expense</button>
                     </div>
                 </div>
             </div>
 
-            <div class="lg:col-span-2">
-                <h2 class="text-xs font-black uppercase text-zinc-500 mb-4 ml-2 tracking-widest">Today's Confirmed Sales</h2>
-                <div class="card p-6 h-full">
-                    <div class="overflow-y-auto max-h-[600px]">
+            <div class="lg:col-span-5">
+                <h2 class="text-xs font-black uppercase text-zinc-500 mb-4 ml-2 tracking-widest">Daily Sales List</h2>
+                <div class="card p-6 h-[600px] overflow-hidden flex flex-col">
+                    <div class="overflow-y-auto flex-1">
                         <table class="w-full text-left text-sm">
                             <thead class="sticky top-0 bg-black text-[10px] text-zinc-600 uppercase font-black border-b border-white/10">
                                 <tr><th class="py-2">Time</th><th class="py-2">Item</th><th class="py-2">Qty</th><th class="py-2">Total</th></tr>
@@ -91,39 +90,35 @@
 
     <script>
         const _supabase = supabase.createClient("https://csdpoyqbkjljaqknunyv.supabase.co", "sb_publishable_GZ9zqNM1CPfdyaEhLY_pOg_Fs4CSfrC");
-        const staffName = sessionStorage.getItem('staffName') || 'Staff';
-        document.getElementById('staff-name-display').innerText = `Staff: ${staffName}`;
+        const staffName = sessionStorage.getItem('staffName') || 'Cashier';
+        document.getElementById('staff-name-display').innerText = `Active: ${staffName}`;
 
         let dailySales = JSON.parse(localStorage.getItem('carmel_sales_list')) || [];
 
-        // 1. LISTEN FOR NEW ORDERS FROM CUSTOMERS
-        async function fetchNewOrders() {
-            const { data, error } = await _supabase.from('orders').select('*').eq('status', 'pending');
+        // --- 1. ORDER QUEUE LOGIC ---
+        async function fetchOrders() {
+            const { data } = await _supabase.from('orders').select('*').eq('status', 'pending').order('created_at', { ascending: true });
             const queue = document.getElementById('order-queue');
             queue.innerHTML = '';
 
             if (data && data.length > 0) {
                 data.forEach(order => {
                     queue.innerHTML += `
-                        <div class="card p-4 border-orange-500/30 bg-orange-500/5">
-                            <div class="flex justify-between items-start mb-2">
-                                <span class="text-[10px] font-black bg-orange-500 text-black px-2 py-1 rounded uppercase">New Order</span>
-                                <span class="text-[10px] text-zinc-500">${new Date(order.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                        <div class="card p-5 border-orange-500/20 bg-orange-500/[0.02]">
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="text-[9px] font-black text-orange-500 uppercase tracking-widest">Order #${order.id.slice(-4)}</span>
+                                <span class="text-[9px] text-zinc-600 font-bold">${new Date(order.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
                             </div>
-                            <p class="font-bold text-white text-lg">${order.item_name}</p>
-                            <p class="text-sm text-zinc-400">Qty: ${order.quantity} | Total: ${order.total_price} Birr</p>
-                            <div class="mt-4 flex gap-2">
-                                <button onclick="confirmOrder('${order.id}', '${order.item_name}', ${order.quantity}, ${order.total_price})" class="flex-1 bg-white text-black text-[10px] font-black py-2 rounded-lg uppercase">Confirm (Send to Kitchen)</button>
-                                <button onclick="cancelOrder('${order.id}')" class="bg-red-500/10 text-red-500 text-[10px] font-black px-3 py-2 rounded-lg uppercase">X</button>
-                            </div>
+                            <p class="text-xl font-black text-white uppercase">${order.item_name}</p>
+                            <p class="text-xs text-zinc-500 font-bold mt-1">${order.quantity} x Unit | ${order.total_price} Birr</p>
+                            <button onclick="confirmOrder('${order.id}', '${order.item_name}', ${order.quantity}, ${order.total_price})" class="w-full mt-4 btn-confirm py-3 rounded-xl uppercase text-[10px]">Confirm & Print</button>
                         </div>`;
                 });
             } else {
-                queue.innerHTML = '<p class="text-xs text-zinc-600 italic p-4">No pending orders...</p>';
+                queue.innerHTML = '<div class="p-10 text-center border-2 border-dashed border-white/5 rounded-3xl text-zinc-700 font-black text-xs uppercase italic">No Pending Orders</div>';
             }
         }
 
-        // 2. CONFIRM ORDER (CHANGE STATUS TO DONE)
         async function confirmOrder(id, item, qty, price) {
             const { error } = await _supabase.from('orders').update({ status: 'done' }).eq('id', id);
             if(!error) {
@@ -132,44 +127,38 @@
                     item, qty, price 
                 });
                 updateUI();
-                fetchNewOrders();
+                fetchOrders();
             }
         }
 
-        async function cancelOrder(id) {
-            if(confirm("Cancel this order?")) {
-                await _supabase.from('orders').delete().eq('id', id);
-                fetchNewOrders();
-            }
-        }
-
-        // 3. REVENUE & TABLE UI
+        // --- 2. SALES TABLE UI ---
         function updateUI() {
             const table = document.getElementById('sales-table-body');
             table.innerHTML = '';
             let totalMoney = 0;
             dailySales.forEach(s => {
                 totalMoney += s.price;
-                table.innerHTML = `<tr><td class="py-3 text-[10px] text-zinc-500">${s.time}</td><td class="font-bold py-3 uppercase">${s.item}</td><td>${s.qty}</td><td class="text-orange-500 font-bold">${s.price}</td></tr>` + table.innerHTML;
+                table.innerHTML = `<tr><td class="py-4 text-[10px] text-zinc-600 font-bold">${s.time}</td><td class="font-black py-4 uppercase">${s.item}</td><td class="text-zinc-400 font-bold">${s.qty}</td><td class="text-orange-500 font-black">${s.price}</td></tr>` + table.innerHTML;
             });
             document.getElementById('daily-count').innerText = dailySales.length;
             document.getElementById('daily-money').innerText = `${totalMoney} Birr`;
             localStorage.setItem('carmel_sales_list', JSON.stringify(dailySales));
         }
 
-        // 4. EXPENSES (WITH UNIT FIX)
+        // --- 3. EXPENSE LOGIC ---
         async function logPurchase() {
             const item = document.getElementById('exp-item-select').value;
             const note = document.getElementById('exp-note').value;
             const qty = parseFloat(document.getElementById('exp-qty').value);
             const unit = document.getElementById('exp-unit-select').value;
             const price = parseFloat(document.getElementById('exp-price').value);
-            if(!item || !qty || !price) return alert("Missing info");
+            if(!item || !qty || !price) return alert("Fill all fields");
 
             const { error } = await _supabase.from('expenses').insert([{ item_name: item, description: note, amount_spent: qty * price, quantity_bought: qty, unit: unit, bought_by: staffName }]);
-            if(!error) { alert("Expense Logged"); location.reload(); }
+            if(!error) { location.reload(); } else { alert(error.message); }
         }
 
+        // --- 4. UTILS ---
         function downloadSales() {
             const ws = XLSX.utils.json_to_sheet(dailySales);
             const wb = XLSX.utils.book_new();
@@ -178,25 +167,28 @@
         }
 
         function clearDailySales() {
-            if(prompt("Manager Code:") === "2026") { dailySales = []; updateUI(); }
+            if(prompt("Enter Code to Clear:") === "2026") { 
+                dailySales = []; 
+                updateUI(); 
+            }
         }
 
         async function loadInventory() {
             const { data } = await _supabase.from('inventory').select('item_name');
             const select = document.getElementById('exp-item-select');
-            select.innerHTML = '<option value="">-- Item --</option>';
+            select.innerHTML = '<option value="">-- Select Item --</option>';
             if(data) data.forEach(i => select.innerHTML += `<option value="${i.item_name}">${i.item_name}</option>`);
             select.innerHTML += `<option value="Other">Other</option>`;
         }
 
         function toggleOtherBox() { document.getElementById('other-note-container').classList.toggle('hidden', document.getElementById('exp-item-select').value !== "Other"); }
-        function calcExp() { document.getElementById('exp-total').innerText = `${(document.getElementById('exp-qty').value * document.getElementById('exp-price').value) || 0} Birr`; }
+        function calcExp() { } // Handled on save
 
-        // Start Up
+        // Initial Load
         updateUI();
         loadInventory();
-        fetchNewOrders();
-        setInterval(fetchNewOrders, 5000); // Check for new orders every 5 seconds
+        fetchOrders();
+        setInterval(fetchOrders, 4000); // Poll every 4 seconds
     </script>
 </body>
 </html>
