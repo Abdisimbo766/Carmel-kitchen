@@ -1,232 +1,546 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="am">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carmel Burger & Juice</title>
+    <title>Carmel Kitchen - Full Menu</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script type="text/javascript">
+        (function() {
+            emailjs.init("UFlToSLznNpZiT3RH");
+        })();
+    </script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        body { 
-            font-family: 'Inter', sans-serif; 
-            background-image: linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.85)), url('https://i.ibb.co/nN67c8KS/Gemini-Generated-Image-6otomb6otomb6oto.png');
-            background-size: cover; background-attachment: fixed; color: white;
-        }
-        .category-btn.active { background: #f39c12; color: white; border-color: #f39c12; }
+        body { font-family: 'Inter', sans-serif; }
+        .category-btn.active { background-color: #f39c12; color: white; border-color: #f39c12; }
         .hide-scroll::-webkit-scrollbar { display: none; }
-        #preview { width: 50px; height: 50px; object-fit: cover; border-radius: 10px; border: 2px solid #f39c12; }
-        .price-text { color: #f39c12; }
+		
+    body {
+        /* የፎቶው ሊንክ እዚህ ገብቷል */
+        background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.7)), 
+                          url('https://i.ibb.co/nN67c8KS/Gemini-Generated-Image-6otomb6otomb6oto.png');
+        background-size: cover;          /* ሙሉ ገጹን እንዲሸፍን */
+        background-position: center;     /* መሃል ላይ እንዲሆን */
+        background-repeat: no-repeat;    /* እንዳይደጋገም */
+        background-attachment: fixed;    /* ገጹ ሲንቀሳቀስ ፎቶው እንዳይነቃነቅ (በስልክ ላይ ላይሰራ ይችላል) */
+        background-color: #1a1a1a;       /* ፎቶው እስኪጭን የሚታይ ከለር */
+        color: white;                    /* አጠቃላይ ጽሁፎች ነጭ እንዲሆኑ */
+    }
+
+    /* የሄደሩን (Header) የላይኛውን ክፍል ጥቁር እና ግልጽ (Transparent) ለማድረግ */
+ header {
+            background-color: #f39c12 !important;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 3px solid #d35400;
+        }
+
+        /* ሄደሩ ውስጥ ያሉ ጽሁፎችን ነጭ ለማድረግ */
+        header h1 span, {
+            color: white !important;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .hide-scroll::-webkit-scrollbar { display: none; }
+    /* የምግብ ስሞች እና ዋጋዎች በደንብ እንዲታዩ */
+    #menu-list h3 { color: #f39c12 !important; }
+    #menu-list .text-gray-600 { color: #d1d5db !important; } /* ፈዘዝ ያለ ግራጫ */
+    
+    /* በተኖቹ (Plus Button) የካራሜል ከለር እንዲኖራቸው */
+    #menu-list button.bg-gray-900 {
+        background-color: #f39c12 !important; /* ወርቃማ/ካራሜል ቢጫ */
+        color: black !important;
+    }
     </style>
 </head>
-<body class="pb-44">
+<body class="https://i.ibb.co/nN67c8KS/Gemini-Generated-Image-6otomb6otomb6oto.png">
 
-<header class="sticky top-0 z-50 bg-[#f39c12] p-4 shadow-xl">
+<header class="bg-yellow-400 p-4 shadow-lg sticky top-0 z-50">
     <div class="max-w-md mx-auto flex justify-between items-center">
-        <h1 class="text-2xl font-black italic text-white tracking-tighter">CARMEL</h1>
-        <button onclick="showPay()" class="bg-black/20 px-3 py-2 rounded-xl text-[10px] font-black border border-white/30 uppercase tracking-widest">Bank Details</button>
-    </div>
-    <div class="flex overflow-x-auto gap-2 mt-4 hide-scroll px-1">
-        <button onclick="filter('all', this)" class="category-btn active border border-white/30 px-5 py-2 rounded-full text-[11px] font-bold whitespace-nowrap">All</button>
-        <button onclick="filter('burger', this)" class="category-btn border border-white/30 px-5 py-2 rounded-full text-[11px] font-bold whitespace-nowrap">Burgers</button>
-        <button onclick="filter('wrap', this)" class="category-btn border border-white/30 px-5 py-2 rounded-full text-[11px] font-bold whitespace-nowrap">Wraps & Sides</button>
-        <button onclick="filter('combo', this)" class="category-btn border border-white/30 px-5 py-2 rounded-full text-[11px] font-bold whitespace-nowrap">Combos</button>
-        <button onclick="filter('pizza', this)" class="category-btn border border-white/30 px-5 py-2 rounded-full text-[11px] font-bold whitespace-nowrap">Pizza</button>
-        <button onclick="filter('breakfast', this)" class="category-btn border border-white/30 px-5 py-2 rounded-full text-[11px] font-bold whitespace-nowrap">Breakfast</button>
-        <button onclick="filter('juice', this)" class="category-btn border border-white/30 px-5 py-2 rounded-full text-[11px] font-bold whitespace-nowrap">Juice & Shakes</button>
-        <button onclick="filter('coffee&tea', this)" class="category-btn border border-white/30 px-5 py-2 rounded-full text-[11px] font-bold whitespace-nowrap">Hot/Cold</button>
-    </div>
-</header>
+        <div>
+            <h1 class="text-3xl font-black italic tracking-tighter">
+    <span class="text-white">CARMEL</span> 
+    <span class="text-yellow-400">KITCHEN</span>
+</h1>
+            <p class="text-[15px] font-bold text-white-400 tracking-widest uppercase">Bishoftu • 0922768471</p>
+       <div class="flex gap-2">
+    <button onclick="showPayment()" class="bg-white/20 text-white px-3 py-2 rounded-xl border border-white/30 flex items-center gap-2 active:scale-95 transition-all shadow-sm">
+        <i class="fas fa-university text-[10px]"></i>
+        <span class="text-[10px] font-black uppercase">አካውንት</span>
+    </button>
 
-<main id="menu-list" class="p-4 max-w-md mx-auto space-y-3"></main>
-
-<div id="checkout" class="fixed bottom-0 inset-x-0 bg-white shadow-2xl rounded-t-[2.5rem] p-6 hidden z-50 text-gray-900 border-t-4 border-yellow-400">
-    <div class="max-w-md mx-auto">
-        <div class="flex justify-between items-start mb-4">
-            <div class="flex-1">
-                <p class="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Selected Items</p>
-                <div id="cart-summary" class="text-[11px] font-bold text-gray-600 truncate w-48"></div>
-                <h2 class="text-2xl font-black mt-1"><span id="total">0</span> <span class="text-sm">ETB</span></h2>
-            </div>
-            <button onclick="resetCart()" class="bg-red-50 text-red-500 px-4 py-2 rounded-xl text-[10px] font-black uppercase border border-red-100 active:scale-90">Cancel</button>
-        </div>
-        <div class="mb-4 bg-gray-50 rounded-2xl p-3 flex items-center justify-between border border-gray-100">
-            <label class="flex items-center gap-3 cursor-pointer">
-                <div class="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center text-yellow-600"><i class="fas fa-camera text-lg"></i></div>
-                <span id="up-text" class="text-[10px] font-black uppercase text-gray-400">Upload Receipt</span>
-                <input type="file" id="receipt" accept="image/*" class="hidden" onchange="handleFile(this)">
-            </label>
-            <img id="preview" class="hidden">
-        </div>
-        <button class="w-full bg-[#f39c12] text-white h-14 rounded-2xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">Place Order</button>
-    </div>
+ 
+        
 </div>
-
-<div id="pay-modal" class="hidden fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-[60]">
-    <div class="bg-white rounded-3xl p-6 w-full max-w-sm text-gray-900 text-center">
-        <h2 class="font-black text-xl mb-6 uppercase">Abdi Tesfaye</h2>
+	
+        <div id="payment-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[9999]">
+    <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-black text-gray-800 tracking-tight">abdi Tesfaye's </h2>
+            <button onclick="closePayment()" class="text-gray-400 hover:text-red-500 text-xl">
+                <i class="fas fa-times-circle"></i>
+            </button>
+			
+</div>
+        </div>
+        
         <div class="space-y-3">
-            <div class="p-4 bg-yellow-50 rounded-2xl border border-yellow-100 flex justify-between items-center">
-                <span class="font-bold text-gray-500 uppercase text-[10px]">CBE</span> <b class="text-sm tracking-widest">1000447868281</b>
+            <div onclick="copyAccount('0974710055', 'Telebirr')" class="flex items-center justify-between p-4 bg-blue-50 rounded-2xl border border-blue-100 cursor-pointer active:scale-95 transition-all group">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xs text-center">T-birr</div>
+                    <div>
+                        <p class="text-xs font-boltext-blue-900 uppercase">Telebirr</p>
+                        <p id="acc-Telebirr" class="text-sm font-black text-blue-700"> <script>document.write(STORE_CONFIG.telebirr)</script> </p></p>
+                    </div>d 
+                </div>
+                <i class="fas fa-copy text-blue-300 group-hover:text-blue-600"></i>
             </div>
-            <div class="p-4 bg-yellow-50 rounded-2xl border border-yellow-100 flex justify-between items-center">
-                <span class="font-bold text-gray-500 uppercase text-[10px]">Telebirr</span> <b class="text-sm tracking-widest">0922768471</b>
+
+            <div onclick="copyAccount('1000447868281', 'CBE')" class="flex items-center justify-between p-4 bg-purple-50 rounded-2xl border border-purple-100 cursor-pointer active:scale-95 transition-all group">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-purple-800 rounded-xl flex items-center justify-center text-white font-bold text-xs text-center italic">CBE</div>
+                    <div>
+                        <p class="text-xs font-bold text-purple-900 uppercase">Commercial Bank</p>
+                        <p id="acc-CBE" class="text-sm font-black text-purple-700"> <script>document.write(STORE_CONFIG.telebirr)</script> </p></p>
+                    </div>
+                </div>
+                <i class="fas fa-copy text-purple-300 group-hover:text-purple-600"></i>
+            </div>
+
+            <div onclick="copyAccount('85123661', 'BOA')" class="flex items-center justify-between p-4 bg-yellow-50 rounded-2xl border border-yellow-100 cursor-pointer active:scale-95 transition-all group">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-yellow-500 rounded-xl flex items-center justify-center text-white font-bold text-xs text-center">BOA</div>
+                    <div>
+                        <p class="text-xs font-bold text-yellow-900 uppercase">Bank of Abyssinia</p>
+                        <p id="acc-BOA" class="text-sm font-black text-yellow-700">  <script>document.write(STORE_CONFIG.telebirr)</script> </p></p>
+                    </div>
+                </div>
+                <i class="fas fa-copy text-yellow-400 group-hover:text-yellow-600"></i>
             </div>
         </div>
-        <button onclick="hidePay()" class="mt-6 py-2 font-black uppercase text-gray-400 text-xs tracking-widest">Back to Menu</button>
+
+        <p class="text-[10px] text-center text-gray-400 mt-6 font-bold uppercase tracking-widest">ለመገልበጥ ባንኩን ይጫኑ</p>
     </div>
 </div>
+    </div>
+        
+            
+        
+        <div class="flex overflow-x-auto gap-3 mt-4 hide-scroll px-1">
+            <button onclick="filter('discount Combos')" class="category-btn border px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap">Discount Combos</button>
+            <button onclick="filter('burger')" class="category-btn border px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap">Burger</button>
+            <button onclick="filter('pizza')" class="category-btn border px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap">Pizza </button>
+			 <button onclick="filter('Chicken, Wraps & Sandwiches')" class="category-btn border px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap">Chicken, Wraps & Sandwiches</button>
+            <button onclick="filter('breakfast')" class="category-btn border px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap">Breakfast</button>
+            <button onclick="filter('juice')" class="category-btn border px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap">Juice</button>
+            <button onclick="filter('coffee&tea')" class="category-btn border px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap">Hot and Iced Drinks</button>
+			<button onclick="filter('all')" class="category-btn active border px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap">All</button>
+        </div>
+	
+    </header>
 
-<script>
-    const items = [
-        // BURGERS
-        { c:'burger', n:'House Special Burger', p:650, i:'https://i.ibb.co/DPgZW2fd/Smash-Burgers-With-Baconnaise-Sauce-Nourish-with-Bites-by-Elise.jpg' },
-        { c:'burger', n:'Fasting Burger', p:390, i:'https://i.ibb.co/PVWT8Jd/Vega-burger-van-falafel.jpg' },
-        { c:'burger', n:'Classic Beef Burger', p:490, i:'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400' },
-        { c:'burger', n:'Chessic Beef Burger ★', p:550, i:'https://i.ibb.co/TMrLCTm8/Popeye-s-Cajun-fries-copycat-recipe-must-try-uber-tasty.jpg' },
-        { c:'burger', n:'Spicy Hot Burger 🔥', p:550, i:'https://i.ibb.co/Xxq3JFGz/download-12.jpg' },
-        { c:'burger', n:'Chicken Double Burger', p:590, i:'https://i.ibb.co/Xxq3JFGz/download-12.jpg' },
-        { c:'burger', n:'Double Beef Burger', p:590, i:'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400' },
-        { c:'burger', n:'BBQ Juicy Burger', p:590, i:'https://i.ibb.co/DPgZW2fd/Smash-Burgers-With-Baconnaise-Sauce-Nourish-with-Bites-by-Elise.jpg' },
-        { c:'burger', n:'Mountain Burger (Taple) 🏔️', p:720, i:'https://i.ibb.co/DPgZW2fd/Smash-Burgers-With-Baconnaise-Sauce-Nourish-with-Bites-by-Elise.jpg' },
-        { c:'burger', n:'VIP Burger 🔥', p:790, i:'https://i.ibb.co/DPgZW2fd/Smash-Burgers-With-Baconnaise-Sauce-Nourish-with-Bites-by-Elise.jpg' },
-        { c:'burger', n:'2 Pc Special Bite Burger', p:450, i:'https://i.ibb.co/ccY8kqPd/Game-Day-MVP-These-Sliders-Disappear-Faster-Than-You-Can-Make-Em.jpg' },
-        { c:'burger', n:'3 Pc Special Bite Burger', p:550, i:'https://i.ibb.co/ccY8kqPd/Game-Day-MVP-These-Sliders-Disappear-Faster-Than-You-Can-Make-Em.jpg' },
-        { c:'burger', n:'5 Pc Special Bite Burger', p:950, i:'https://i.ibb.co/ccY8kqPd/Game-Day-MVP-These-Sliders-Disappear-Faster-Than-You-Can-Make-Em.jpg' },
-        { c:'burger', n:'Chips 🍟', p:190, i:'https://i.ibb.co/TMrLCTm8/Popeye-s-Cajun-fries-copycat-recipe-must-try-uber-tasty.jpg' },
-
-        // WRAPS & SANDWICHES
-        { c:'wrap', n:'2 Pc Fried Chicken', p:490, i:'https://i.ibb.co/jjtfNS4/download-13.jpg' },
-        { c:'wrap', n:'3 Pc Fried Chicken', p:740, i:'https://i.ibb.co/jjtfNS4/download-13.jpg' },
-        { c:'wrap', n:'5 Pc Fried Chicken', p:1190, i:'https://i.ibb.co/jjtfNS4/download-13.jpg' },
-        { c:'wrap', n:'Beef Wrap', p:490, i:'https://i.ibb.co/5Wm7DNJF/feedcookery-Yo-Fan.jpg' },
-        { c:'wrap', n:'Chicken Wrap', p:490, i:'https://i.ibb.co/GfmMrRHg/Delicious-Buffalo-Chicken-Wraps-Quick-And-Easy-Recipe-Guide.jpg' },
-        { c:'wrap', n:'Vegetable Wrap', p:350, i:'https://i.ibb.co/Y7x99HLk/Easy-15-Minute-Mediterranean-Veggie-Wraps-Recipe.jpg' },
-        { c:'wrap', n:'Egg Sandwich', p:190, i:'https://i.ibb.co/xSVk0ns6/Egg-Sandwich.jpg' },
-        { c:'wrap', n:'Vegetable Sandwich', p:290, i:'https://i.ibb.co/ZrmWJq4/The-BEST-Grilled-Veggie-Sandwich-nut-free-soy-free-gluten-free.jpg' },
-        { c:'wrap', n:'Tuna Sandwich', p:440, i:'https://i.ibb.co/TDs7fbPV/Philly-Cheesesteak-Sandwich-Recipe-Quick-Dinner-Ideas.jpg' },
-
-        // COMBOS
-        { c:'combo', n:'Kuriftu Combo (3 Mini + 2 Pizza)', p:1290, i:'https://i.ibb.co/TxSrpFBD/download-25.jpg' },
-        { c:'combo', n:'Kilole Combo (+2 Mojitos) 🍹', p:1590, i:'https://i.ibb.co/TxSrpFBD/download-25.jpg' },
-        { c:'combo', n:'Calalaqa Combo (+2 Fried Chicken)', p:1290, i:'https://i.ibb.co/jjtfNS4/download-13.jpg' },
-        { c:'combo', n:'Hora Combo (+Chicken +Mojitos) 🍹', p:1990, i:'https://i.ibb.co/TxSrpFBD/download-25.jpg' },
-        { c:'combo', n:'Babogaya Combo (2 Mini + Juice)', p:600, i:'https://i.ibb.co/TxSrpFBD/download-25.jpg' },
-        { c:'combo', n:'Bishe Combo (Pizza + Juice)', p:600, i:'https://i.ibb.co/jvDkfGDf/Classic-Vegan-Pizza-Margherita-Recipe-for-Home.jpg' },
-
-        // PIZZA
-        { c:'pizza', n:'Special Pizza (Regular)', p:690, i:'https://i.ibb.co/DfkTk3bC/BBQ-Chicken-Pizza-Delight.jpg' },
-        { c:'pizza', n:'Special Pizza (Personal)', p:490, i:'https://i.ibb.co/DfkTk3bC/BBQ-Chicken-Pizza-Delight.jpg' },
-        { c:'pizza', n:'Tuna Pizza (Regular)', p:670, i:'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400' },
-        { c:'pizza', n:'Tuna Pizza (Personal)', p:470, i:'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400' },
-        { c:'pizza', n:'Beef Pizza (Regular)', p:650, i:'https://i.ibb.co/Z6VMhtTP/Paula-Deen-Family-Recipes.jpg' },
-        { c:'pizza', n:'Beef Pizza (Personal)', p:450, i:'https://i.ibb.co/Z6VMhtTP/Paula-Deen-Family-Recipes.jpg' },
-        { c:'pizza', n:'Chicken Pizza (Regular)', p:650, i:'https://i.ibb.co/DfkTk3bC/BBQ-Chicken-Pizza-Delight.jpg' },
-        { c:'pizza', n:'Chicken Pizza (Personal)', p:450, i:'https://i.ibb.co/DfkTk3bC/BBQ-Chicken-Pizza-Delight.jpg' },
-        { c:'pizza', n:'Vegetable Pizza (Regular)', p:550, i:'https://i.ibb.co/jvDkfGDf/Classic-Vegan-Pizza-Margherita-Recipe-for-Home.jpg' },
-        { c:'pizza', n:'Vegetable Pizza (Personal)', p:400, i:'https://i.ibb.co/jvDkfGDf/Classic-Vegan-Pizza-Margherita-Recipe-for-Home.jpg' },
-        { c:'pizza', n:'Cheese Pizza (Regular)', p:550, i:'https://i.ibb.co/jvDkfGDf/Classic-Vegan-Pizza-Margherita-Recipe-for-Home.jpg' },
-        { c:'pizza', n:'Cheese Pizza (Personal)', p:400, i:'https://i.ibb.co/jvDkfGDf/Classic-Vegan-Pizza-Margherita-Recipe-for-Home.jpg' },
-
-        // BREAKFAST
-        { c:'breakfast', n:'Full Breakfast', p:150, i:'https://i.ibb.co/84T6Qf3p/Fluffy-scrambled-eggs-with-toast-on-rustic-plate.jpg' },
-        { c:'breakfast', n:'Special Full Breakfast', p:200, i:'https://i.ibb.co/G3tcm4fy/IMG-Special-Ful.jpg' },
-        { c:'breakfast', n:'Chachabesa', p:200, i:'https://i.ibb.co/QgcGyDJ/Chechebsa-Kita-Firfir-Kitcha-Fit-Fit.jpg' },
-        { c:'breakfast', n:'Special Chachabesa', p:250, i:'https://i.ibb.co/QgcGyDJ/Chechebsa-Kita-Firfir-Kitcha-Fit-Fit.jpg' },
-        { c:'breakfast', n:'Fatria', p:250, i:'https://i.ibb.co/GvkrkqJt/Flaky-Layers-of-Flavor-Make-Mirch-Namak-Lachcha-Paratha-at-Home.jpg' },
-        { c:'breakfast', n:'Special Fatria', p:350, i:'https://i.ibb.co/GvkrkqJt/Flaky-Layers-of-Flavor-Make-Mirch-Namak-Lachcha-Paratha-at-Home.jpg' },
-        { c:'breakfast', n:'Firfir', p:170, i:'https://i.ibb.co/Gf88XZLj/The-Virtual-World-Cookbook-Extravaganza-begins-Fir-Fir-Ethiopian-Breakfast-Food.jpg' },
-        { c:'breakfast', n:'Tibs Firfir', p:290, i:'https://i.ibb.co/GQCwyrvT/download-14.jpg' },
-        { c:'breakfast', n:'Egg', p:170, i:'https://i.ibb.co/84T6Qf3p/Fluffy-scrambled-eggs-with-toast-on-rustic-plate.jpg' },
-        { c:'breakfast', n:'Egg with Meat', p:290, i:'https://i.ibb.co/j97wyxTp/download-24.jpg' },
-        { c:'breakfast', n:'Pasta', p:190, i:'https://i.ibb.co/xqQ4NP8F/This-homemade-Meat-Sauce-recipe-is-easy-to-make-with-ground-beef-and-serve-with-spaghetti-or-your-fa.jpg' },
-        { c:'breakfast', n:'Pasta with Meat', p:290, i:'https://i.ibb.co/xqQ4NP8F/This-homemade-Meat-Sauce-recipe-is-easy-to-make-with-ground-beef-and-serve-with-spaghetti-or-your-fa.jpg' },
-        { c:'breakfast', n:'Tibs', p:450, i:'https://i.ibb.co/GQCwyrvT/download-14.jpg' },
-        { c:'breakfast', n:'Avocado Liblib', p:200, i:'https://i.ibb.co/jkkRGGNF/Fresh-Avocado-Power-Salad.jpg' },
-
-        // JUICE & SHAKES
-        { c:'juice', n:'Avocado 🥑', p:180, i:'https://i.ibb.co/LDxrcQmc/Spinach-Avocado-Smoothie.jpg' },
-        { c:'juice', n:'Papaya 🥭', p:180, i:'https://i.ibb.co/LzDjZzXx/See-all-about-Green-Papaya.jpg' },
-        { c:'juice', n:'Pineapple 🍍', p:200, i:'https://i.ibb.co/LXyYVjbc/Easy-Mango-Milkshake-Recipe.jpg' },
-        { c:'juice', n:'Mango 🥭', p:230, i:'https://i.ibb.co/VpDDkW78/Alphanso-Mango-Shake-Aesthetic.jpg' },
-        { c:'juice', n:'Strawberry 🍓', p:230, i:'https://i.ibb.co/TDJGN0Hg/Energizing-Eats-Power-Your-Day-1.jpg' },
-        { c:'juice', n:'Mixed Juice 🍹', p:250, i:'https://i.ibb.co/hFc4Vbx0/mix-fruit-juice.webp' },
-        { c:'juice', n:'Banana Milkshake 🍌', p:200, i:'https://i.ibb.co/TBRyRtQQ/Banana-Shake.jpg' },
-        { c:'juice', n:'Strawberry Shake 🍓', p:250, i:'https://i.ibb.co/mrjSbPkP/The-Perfect-Strawberry-Milkshake.jpg' },
-        { c:'juice', n:'Mango Shake 🥭', p:250, i:'https://i.ibb.co/VpDDkW78/Alphanso-Mango-Shake-Aesthetic.jpg' },
-        { c:'juice', n:'Avocado + Choc Shake', p:270, i:'https://i.ibb.co/sd0hJ0xq/How-to-Make-a-Keto-Friendly-Chocolate-Avocado-Shake.jpg' },
-        { c:'juice', n:'Oreo + Chocolate 🍪', p:290, i:'https://i.ibb.co/QjpLFh3n/All-new-dessert-recipes.jpg' },
-        { c:'juice', n:'Chocolate Shake 🍫', p:290, i:'https://i.ibb.co/V0D8KwMD/milk-shakes.jpg' },
-        { c:'juice', n:'Carmel Special Shake ⭐', p:320, i:'https://i.ibb.co/zh6R2GGs/Caramel-Frappe.jpg' },
-        { c:'juice', n:'Strawberry Mojito 🍓', p:200, i:'https://i.ibb.co/TDJGN0Hg/Energizing-Eats-Power-Your-Day-1.jpg' },
-        { c:'juice', n:'Pineapple Mojito 🍍', p:200, i:'https://i.ibb.co/LXyYVjbc/Easy-Mango-Milkshake-Recipe.jpg' },
-        { c:'juice', n:'Lemon Mint Mojito 🍋', p:200, i:'https://i.ibb.co/C51cM5gL/download-21.jpg' },
-
-        // HOT & COLD DRINKS
-        { c:'coffee&tea', n:'Jebena Coffee ★', p:40, i:'https://i.ibb.co/TMRXzx2T/download-22.jpg' },
-        { c:'coffee&tea', n:'Machine Coffee ★', p:70, i:'https://i.ibb.co/XfChHDVP/Espresso-Coffee-Recipe.jpg' },
-        { c:'coffee&tea', n:'Macchiato ★', p:70, i:'https://i.ibb.co/BKV6PMwg/Latte.jpg' },
-        { c:'coffee&tea', n:'Cappuccino', p:100, i:'https://i.ibb.co/C573gBTz/Caffe-Mocha-Magic.jpg' },
-        { c:'coffee&tea', n:'Hot Chocolate', p:100, i:'https://i.ibb.co/wFR2g6xx/download-23.jpg' },
-        { c:'coffee&tea', n:'Black Tea', p:40, i:'https://i.ibb.co/mFgP7pJD/Elevate-Your-Detox-with-Luscious-Green-Tea-Juice.jpg' },
-        { c:'coffee&tea', n:'Special Tea', p:100, i:'https://i.ibb.co/zVMdv8FV/When-life-gives-you-lemons.jpg' },
-        { c:'coffee&tea', n:'Soft Drink', p:70, i:'https://i.ibb.co/JRxVwy7b/download-20.jpg' },
-        { c:'coffee&tea', n:'Water', p:35, i:'https://i.ibb.co/MxKqQcZb/image.jpg' }
-    ];
-
-    let cart = []; let total = 0;
-
-    function render(cat = 'all') {
-        const list = document.getElementById('menu-list');
-        const filtered = cat === 'all' ? items : items.filter(i => i.c === cat);
-        list.innerHTML = filtered.map(item => `
-            <div class="bg-white/95 rounded-3xl p-3 flex items-center gap-4 shadow-xl border-l-4 border-yellow-400">
-                <img src="${item.i}" class="w-20 h-20 rounded-2xl object-cover shadow-md">
-                <div class="flex-1">
-                    <h3 class="text-gray-900 font-black text-[11px] uppercase leading-tight">${item.n}</h3>
-                    <p class="price-text font-black text-lg">${item.p} <span class="text-[10px] text-gray-400">ETB</span></p>
-                </div>
-                <button onclick="add('${item.n}', ${item.p})" class="bg-yellow-400 text-black w-10 h-10 rounded-xl font-black shadow-lg active:scale-90">+</button>
+    <main id="menu-list" class="p-4 max-w-md mx-auto grid grid-cols-1 gap-4"></main>
+	<section class="p-4 max-w-md mx-auto mb-28">
+    <div class="flex items-center gap-2 mb-4">
+        <i class="fas fa-map-marker-alt text-yellow-400"></i>
+        <h4 class="text-white font-black italic uppercase text-xs tracking-widest">አድራሻችን (ቢሾፍቱ)</h4>
+    </div>
+    
+    <div class="rounded-[2.5rem] overflow-hidden border-2 border-yellow-400 shadow-2xl h-64 w-full relative">
+        <iframe 
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1971.6846356764775!2d38.95783121414158!3d8.751282829253958!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x164b0df8836642a1%3A0x2339072958c0d928!2sCarmel%20Burger%20%26%20Milkshake!5e0!3m2!1sen!2set!4v1774252109522!5m2!1sen!2set" 
+            width="100%" 
+            height="100%" 
+            style="border:0;" 
+            allowfullscreen="" 
+            loading="lazy" 
+            referrerpolicy="no-referrer-when-downgrade">
+        </iframe>
+        
+        <a href="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3944.5!2d38.9!3d8.78" target="_blank" 
+           class="absolute bottom-4 right-4 bg-yellow-400 text-black px-4 py-2 rounded-xl font-black text-[10px] uppercase shadow-lg active:scale-95 transition-all">
+            በካርታ ክፈት <i class="fas fa-external-link-alt ml-1"></i>
+        </a>
+    </div>
+    
+    <p class="text-center text-[10px] text-gray-500 mt-4 font-bold uppercase tracking-widest">
+        Bishoftu • Carmel Kitchen
+    </p>
+</section>
+<div id="payment-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[9999]">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl">
+            <div class="text-4xl mb-4">💳</div>
+            <h2 class="text-xl font-bold mb-2 text-gray-800">ክፍያ ይፈጽሙ</h2>
+            <p class="text-gray-500 text-sm mb-6">እባክዎ የባንክ ቁጥሩን ተጭነው ኮፒ ያድርጉ</p>
+            
+            <div onclick="copyAccount('1000447868281')" class="bg-slate-50 p-4 rounded-2xl border-2 border-dashed border-slate-200 cursor-pointer hover:border-blue-400 transition-all mb-4 group">
+                <span class="text-[10px] text-blue-500 block uppercase font-bold mb-1">የአካውንት ቁጥር (ለመገልበጥ ይጫኑ)</span>
+                <span id="acc-no" class="text-xl font-black text-slate-800 group-hover:text-blue-600 transition-colors">1000447868281</span>
             </div>
-        `).join('');
-    }
 
-    function add(n, p) {
-        cart.push(n); total += p;
-        document.getElementById('total').innerText = total;
-        document.getElementById('cart-summary').innerText = cart.join(", ");
-        document.getElementById('checkout').classList.remove('hidden');
-    }
+            <p class="text-[11px] text-orange-600 bg-orange-50 p-3 rounded-lg mb-6">
+                ⚠️ ክፍያውን እንደፈጸሙ የደረሰኙን ስክሪንሻት ማያያዝዎን አይርሱ።
+            </p>
+            
+            <button onclick="closePayment()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all">
+                ተረድቻለሁ
+            </button>
+        </div>
+    </div>
+    <div id="checkout" class="fixed bottom-0 left-0 right-0 bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.1)] rounded-t-[2.5rem] p-6 hidden z-[60]">
+        <div class="max-w-md mx-auto">
+            <div class="flex justify-between items-end mb-6">
+                <div>
+                    <p class="text-gray-400 text-xs font-bold uppercase">Total price</p>
+                    <h2 class="text-3xl font-black text-gray-900"><span id="total">0</span> <span class="text-sm font-normal">ETB</span></h2>
+                </div>
+                <button onclick="resetCart()" class="text-red-500 text-xs font-bold">clear</button>
+            </div>
 
-    function resetCart() {
-        if(confirm("Empty your cart?")) {
-            cart = []; total = 0;
-            document.getElementById('checkout').classList.add('hidden');
-            document.getElementById('preview').classList.add('hidden');
-            document.getElementById('up-text').innerText = "Upload Receipt";
-            document.getElementById('up-text').classList.remove('text-green-600');
+            <div class="mb-6 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl p-4">
+                <label class="flex flex-col items-center cursor-pointer">
+                    <i class="fas fa-camera text-2xl text-gray-400 mb-2"></i>
+                    <span id="upload-text" class="text-[10px] font-bold text-gray-400 uppercase">የክፍያ ስክሪንሻት ይጫኑ</span>
+                    <input type="file" id="receipt" accept="image/*" class="hidden" onchange="handleFile(this)">
+                    <img id="preview" class="hidden h-16 w-16 object-cover rounded-lg mt-2 shadow-md">
+                </label>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="order('Telebirr', this)" class="bg-blue-600 text-white h-16 rounded-2xl font-black shadow-lg">telebirr</button>
+                <button onclick="order('CBE', this)" class="bg-[#003366] text-white h-16 rounded-2xl font-black shadow-lg">CBE / ባንክ</button>
+            </div>
+        </div>
+    </div>
+	
+
+    <script type="module">
+		// CONFIGURATION - እነዚህን ብቻ በመቀየር ሲስተሙን መቆጣጠር ይቻላል
+const STORE_CONFIG = {
+    telebirr: "0922768471",
+    cbe: "1000447868281",
+    boa: "85123661",
+    admin_code: "CARMEL_BOSS_2026"
+};
+      const SUPABASE_URL='https://icubeupnkfulidmtiqsz.supabase.co',
+		  SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImljdWJldXBua2Z1bGlkbXRpcXN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyOTg5MTAsImV4cCI6MjA4ODg3NDkxMH0.-sRfDPpsTh5ohKUmG460xvlS0RW6jYg8SsYGDDI7P-k',
+		  IMGBB_KEY='d0c82215edaf40d4c6c53b5e24b6ef8d',
+		  BOT_TOKEN='8626917276:AAGleTAqb_X0Tch_4bThqJeEsxPKq49q8Tw',
+		  CHAT_ID='5404876839';globalThis['SUPABASE_URL']=SUPABASE_URL;globalThis['SUPABASE_KEY']=SUPABASE_KEY;globalThis['IMGBB_KEY']=IMGBB_KEY;globalThis['BOT_TOKEN']=BOT_TOKEN;globalThis['CHAT_ID']=CHAT_ID;
+
+        const items = [
+            // BURGERS
+    { c:'burger', n:'House Special Burger', p:650, i:'https://i.ibb.co/DPgZW2fd/Smash-Burgers-With-Baconnaise-Sauce-Nourish-with-Bites-by-Elise.jpg' },
+    { c:'burger', n:'Fasting Burger', p:390, i:'https://i.ibb.co/PVWT8Jd/Vega-burger-van-falafel.jpg' },
+    { c:'burger', n:'Classic Beef Burger', p:490, i:'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400' },
+    { c:'burger', n:'Chessic Beef Burger ★', p:550, i:'https://i.ibb.co/TMrLCTm8/Popeye-s-Cajun-fries-copycat-recipe-must-try-uber-tasty.jpg' },
+    { c:'burger', n:'Spicy Hot Burger 🔥', p:550, i:'https://i.ibb.co/Xxq3JFGz/download-12.jpg' },
+    { c:'burger', n:'Chicken Double Burger', p:590, i:'https://i.ibb.co/Xxq3JFGz/download-12.jpg' },
+    { c:'burger', n:'Double Beef Burger', p:590, i:'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400' },
+    { c:'burger', n:'BBQ Juicy Burger', p:590, i:'https://i.ibb.co/DPgZW2fd/Smash-Burgers-With-Baconnaise-Sauce-Nourish-with-Bites-by-Elise.jpg' },
+    { c:'burger', n:'Mountain Burger (Taple) 🏔️', p:720, i:'https://i.ibb.co/DPgZW2fd/Smash-Burgers-With-Baconnaise-Sauce-Nourish-with-Bites-by-Elise.jpg' },
+    { c:'burger', n:'VIP Burger 🔥', p:790, i:'https://i.ibb.co/DPgZW2fd/Smash-Burgers-With-Baconnaise-Sauce-Nourish-with-Bites-by-Elise.jpg' },
+    { c:'burger', n:'2 Pc Special Bite Burger', p:450, i:'https://i.ibb.co/ccY8kqPd/Game-Day-MVP-These-Sliders-Disappear-Faster-Than-You-Can-Make-Em.jpg' },
+    { c:'burger', n:'3 Pc Special Bite Burger', p:550, i:'https://i.ibb.co/ccY8kqPd/Game-Day-MVP-These-Sliders-Disappear-Faster-Than-You-Can-Make-Em.jpg' },
+    { c:'burger', n:'5 Pc Special Bite Burger', p:950, i:'https://i.ibb.co/ccY8kqPd/Game-Day-MVP-These-Sliders-Disappear-Faster-Than-You-Can-Make-Em.jpg' },
+    { c:'burger', n:'Chips 🍟', p:190, i:'https://i.ibb.co/TMrLCTm8/Popeye-s-Cajun-fries-copycat-recipe-must-try-uber-tasty.jpg' },
+            
+            // Wraps And Sandwiches
+            { c:'Chicken, Wraps & Sandwiches', n:'2 Pc Fried Chicken', p:490, i:'https://i.ibb.co/jjtfNS4/download-13.jpg' },
+            { c:'Chicken, Wraps & Sandwiches', n:'3 Pc Fried Chicken', p:740, i:'https://i.ibb.co/jjtfNS4/download-13.jpg' },
+            { c:'Chicken, Wraps & Sandwiches', n:'5 Pc Fried Chicken', p:1190, i:'https://i.ibb.co/jjtfNS4/download-13.jpg' },
+            { c:'Chicken, Wraps & Sandwiches', n:'Beef Wrap', p:490, i:'https://i.ibb.co/5Wm7DNJF/feedcookery-Yo-Fan.jpg' },
+            { c:'Chicken, Wraps & Sandwiches', n:'Chicken Wrap', p:490, i:'https://i.ibb.co/GfmMrRHg/Delicious-Buffalo-Chicken-Wraps-Quick-And-Easy-Recipe-Guide.jpg' },
+            { c:'Chicken, Wraps & Sandwiches', n:'Vegetable Wrap', p:350, i:'https://i.ibb.co/Y7x99HLk/Easy-15-Minute-Mediterranean-Veggie-Wraps-Recipe.jpg' },
+            { c:'Chicken, Wraps & Sandwiches', n:'Egg Sandwich', p:190, i:'https://i.ibb.co/xSVk0ns6/Egg-Sandwich.jpg' },
+            { c:'Chicken, Wraps & Sandwiches', n:'Vegetable Sandwich', p:290, i:'https://i.ibb.co/ZrmWJq4/The-BEST-Grilled-Veggie-Sandwich-nut-free-soy-free-gluten-free.jpg' },
+            { c:'Chicken, Wraps & Sandwiches', n:'Tuna Sandwich', p:440, i:'https://i.ibb.co/TDs7fbPV/Philly-Cheesesteak-Sandwich-Recipe-Quick-Dinner-Ideas.jpg' },
+            
+            
+            // Discounted Combos
+            { c:'discount Combos', n:'Kuriftu Combo (3 Mini + 2 Pizza)', p:1290, i:'https://i.ibb.co/TxSrpFBD/download-25.jpg' },
+            { c:'discount Combos', n:'Kilole Combo (+2 Mojitos) 🍹', p:1590, i:'https://i.ibb.co/TxSrpFBD/download-25.jpg' },
+            { c:'discount Combos', n:'Calalaqa Combo (+2 Fried Chicken)', p:1290, i:'https://i.ibb.co/jjtfNS4/download-13.jpg' },
+            { c:'discount Combos', n:'Hora Combo (+Chicken +Mojitos) 🍹', p:1990, i:'https://i.ibb.co/TxSrpFBD/download-25.jpg' },
+            { c:'discount Combos', n:'Babogaya Combo (2 Mini + Juice)', p:600, i:'https://i.ibb.co/TxSrpFBD/download-25.jpg' },
+            { c:'discount Combos', n:'Bishe Combo (Pizza + Juice)', p:600, i:'https://i.ibb.co/jvDkfGDf/Classic-Vegan-Pizza-Margherita-Recipe-for-Home.jpg' },
+            
+            
+            // Pizza 
+            { c:'pizza', n:'Special Pizza (Regular)', p:690, i:'https://i.ibb.co/DfkTk3bC/BBQ-Chicken-Pizza-Delight-This-BBQ-Chicken-Pizza-is-loaded-with-tender-chicken-tangy-BBQ-sauce.jpg' },
+            { c:'pizza', n:'Special Pizza (Personal)', p:490, i:'https://i.ibb.co/DfkTk3bC/BBQ-Chicken-Pizza-Delight-This-BBQ-Chicken-Pizza-is-loaded-with-tender-chicken-tangy-BBQ-sauce.jpg' },
+            { c:'pizza', n:'Tuna Pizza (Regular)', p:670, i:'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400' },
+            { c:'pizza', n:'Tuna Pizza (Personal)', p:470, i:'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400' },
+            { c:'pizza', n:'Beef Pizza (Regular)', p:650, i:'https://i.ibb.co/Z6VMhtTP/Paula-Deen-Family-Recipes-It-was-Friday-night-and-pizza-delivery-failed-us-cold-soggy-and-miss.jpg' },
+            { c:'pizza', n:'Beef Pizza (Personal)', p:450, i:'https://i.ibb.co/Z6VMhtTP/Paula-Deen-Family-Recipes-It-was-Friday-night-and-pizza-delivery-failed-us-cold-soggy-and-miss.jpg' },
+            { c:'pizza', n:'Chicken Pizza (Regular)', p:650, i:'https://i.ibb.co/DfkTk3bC/BBQ-Chicken-Pizza-Delight-This-BBQ-Chicken-Pizza-is-loaded-with-tender-chicken-tangy-BBQ-sauce.jpg' },
+            { c:'pizza', n:'Chicken Pizza (Personal)', p:450, i:'https://i.ibb.co/DfkTk3bC/BBQ-Chicken-Pizza-Delight-This-BBQ-Chicken-Pizza-is-loaded-with-tender-chicken-tangy-BBQ-sauce.jpg' },
+            { c:'pizza', n:'Vegetable Pizza (Regular)', p:550, i:'https://i.ibb.co/jvDkfGDf/Classic-Vegan-Pizza-Margherita-Recipe-for-Home.jpg' },
+            { c:'pizza', n:'Vegetable Pizza (Personal)', p:400, i:'https://i.ibb.co/jvDkfGDf/Classic-Vegan-Pizza-Margherita-Recipe-for-Home.jpg' },
+            { c:'pizza', n:'Cheese Pizza (Regular)', p:550, i:'https://i.ibb.co/jvDkfGDf/Classic-Vegan-Pizza-Margherita-Recipe-for-Home.jpg' },
+            { c:'pizza', n:'Cheese Pizza (Personal)', p:400, i:'https://i.ibb.co/jvDkfGDf/Classic-Vegan-Pizza-Margherita-Recipe-for-Home.jpg' },
+
+            
+            // Breakfast
+            { c:'breakfast', n:'Full Breakfast', p:150, i:'https://i.ibb.co/84T6Qf3p/Fluffy-scrambled-eggs-with-toast-on-rustic-plate.jpg' },
+            { c:'breakfast', n:'Special Full Breakfast', p:200, i:'https://i.ibb.co/G3tcm4fy/IMG-Special-Ful.jpg' },
+            { c:'breakfast', n:'Chachabesa', p:200, i:'https://i.ibb.co/QgcGyDJ/Chechebsa-Kita-Firfir-Kitcha-Fit-Fit.jpg' },
+            { c:'breakfast', n:'Special Chachabesa', p:250, i:'https://i.ibb.co/QgcGyDJ/Chechebsa-Kita-Firfir-Kitcha-Fit-Fit.jpg' },
+            { c:'breakfast', n:'Fatria', p:250, i:'https://i.ibb.co/GvkrkqJt/Flaky-Layers-of-Flavor-Make-Mirch-Namak-Lachcha-Paratha-at-Home.jpg' },
+            { c:'breakfast', n:'Special Fatria', p:350, i:'https://i.ibb.co/GvkrkqJt/Flaky-Layers-of-Flavor-Make-Mirch-Namak-Lachcha-Paratha-at-Home.jpg' },
+            { c:'breakfast', n:'Firfir', p:170, i:'https://i.ibb.co/Gf88XZLj/The-Virtual-World-Cookbook-Extravaganza-begins-Fir-Fir-Ethiopian-Breakfast-Food.jpg' },
+            { c:'breakfast', n:'Tibs Firfir', p:290, i:'https://i.ibb.co/GQCwyrvT/download-14.jpg' },
+            { c:'breakfast', n:'Egg', p:170, i:'https://i.ibb.co/84T6Qf3p/Fluffy-scrambled-eggs-with-toast-on-rustic-plate.jpg' },
+            { c:'breakfast', n:'Egg with Meat', p:290, i:'https://i.ibb.co/j97wyxTp/download-24.jpg' },
+            { c:'breakfast', n:'Pasta', p:190, i:'https://i.ibb.co/xqQ4NP8F/This-homemade-Meat-Sauce-recipe-is-easy-to-make-with-ground-beef-and-serve-with-spaghetti-or-your-fa.jpg' },
+            { c:'breakfast', n:'Pasta with Meat', p:290, i:'https://i.ibb.co/xqQ4NP8F/This-homemade-Meat-Sauce-recipe-is-easy-to-make-with-ground-beef-and-serve-with-spaghetti-or-your-fa.jpg' },
+            { c:'breakfast', n:'Tibs', p:450, i:'https://i.ibb.co/GQCwyrvT/download-14.jpg' },
+            { c:'breakfast', n:'Avocado Liblib', p:200, i:'https://i.ibb.co/jkkRGGNF/Fresh-Avocado-Power-Salad.jpg' },
+            
+            // Juices
+            { c:'juice', n:'Avocado 🥑', p:180, i:'https://i.ibb.co/LDxrcQmc/Mediterranean-Inspired-Recipes-to-Lower-Cholesterol-and-Triglycerides-Spinach-Avocado-Smoothie.jpg' },
+            { c:'juice', n:'Papaya 🥭', p:180, i:'https://i.ibb.co/LzDjZzXx/See-all-about-Green-Papaya-Will-Unlock-4-Powerful-Secret-Benefits-in-https-click-for-health-com-gr.jpg' },
+            { c:'juice', n:'Pineapple 🍍', p:200, i:'https://i.ibb.co/LXyYVjbc/Easy-Mango-Milkshake-Recipe.jpg' },
+            { c:'juice', n:'Mango 🥭', p:230, i:'https://i.ibb.co/VpDDkW78/Alphanso-Mango-Shake-Aesthetic.jpg' },
+            { c:'juice', n:'Strawberry 🍓', p:230, i:'https://i.ibb.co/TDJGN0Hg/Energizing-Eats-Power-Your-Day-1.jpg' },
+            { c:'juice', n:'Mixed Juice 🍹', p:250, i:'https://i.ibb.co/hFc4Vbx0/mix-fruit-juice.webp' },
+            { c:'juice', n:'Banana Milkshake 🍌', p:200, i:'https://i.ibb.co/TBRyRtQQ/Banana-Shake.jpg' },
+            { c:'juice', n:'Strawberry Shake 🍓', p:250, i:'https://i.ibb.co/mrjSbPkP/The-Perfect-Strawberry-Milkshake-A-Pretty-Delicious-Treat.jpg' },
+            { c:'juice', n:'Mango Shake 🥭', p:250, i:'https://i.ibb.co/VpDDkW78/Alphanso-Mango-Shake-Aesthetic.jpg' },
+            { c:'juice', n:'Avocado + Chocolate Shake', p:270, i:'https://i.ibb.co/sd0hJ0xq/How-to-Make-a-Keto-Friendly-Chocolate-Avocado-Shake-in-Minutes.jpg' },
+            { c:'juice', n:'Oreo + Chocolate 🍪', p:290, i:'https://i.ibb.co/QjpLFh3n/All-new-dessert-recipes.jpg' },
+            { c:'juice', n:'Chocolate Shake 🍫', p:290, i:'https://i.ibb.co/V0D8KwMD/milk-shakes.jpg' },
+            { c:'juice', n:'Carmel Special Shake ⭐', p:320, i:'https://i.ibb.co/zh6R2GGs/Caramel-Frappe-recipe-Simply-Recipes-IBC-Simply.jpg' },
+            { c:'juice', n:'Strawberry Mojito 🍓', p:200, i:'https://i.ibb.co/TDJGN0Hg/Energizing-Eats-Power-Your-Day-1.jpg' },
+            { c:'juice', n:'Pineapple Mojito 🍍', p:200, i:'https://i.ibb.co/LXyYVjbc/Easy-Mango-Milkshake-Recipe.jpg' },
+            { c:'juice', n:'Lemon Mint Mojito 🍋', p:200, i:'https://i.ibb.co/C51cM5gL/download-21.jpg' },
+            
+            
+            // Hot and Cold Drinks
+            { c:'coffee&tea', n:'Jebena Coffee ★', p:40, i:'https://i.ibb.co/TMRXzx2T/download-22.jpg' },
+            { c:'coffee&tea', n:'Machine Coffee ★', p:70, i:'https://i.ibb.co/XfChHDVP/Espresso-Coffee-Recipe.jpg' },
+            { c:'coffee&tea', n:'Macchiato ★', p:70, i:'https://i.ibb.co/BKV6PMwg/Latte.jpg' },
+            { c:'coffee&tea', n:'Cappuccino', p:100, i:'https://i.ibb.co/C573gBTz/Caffe-Mocha-Magic-For-Chocolate-Coffee-Lovers-Happy-Baking-Days.jpg' },
+            { c:'coffee&tea', n:'Latte', p:100, i:'https://i.ibb.co/4nYRFdPn/Coffee-Art-Inspiration-Imagine-Coffee-Art-Home-Decor-Ideas.jpg' },
+            { c:'coffee&tea', n:'Hot Chocolate', p:100, i:'https://i.ibb.co/wFR2g6xx/download-23.jpg' },
+            { c:'coffee&tea', n:'Milk', p:70, i:'https://i.ibb.co/MxKqQcZb/image.jpg' },
+            { c:'coffee&tea', n:'Black Tea', p:40, i:'https://i.ibb.co/mFgP7pJD/Elevate-Your-Detox-with-Luscious-Green-Tea-Juice.jpg' },
+            { c:'coffee&tea', n:'Flavour Tea', p:70, i:'https://i.ibb.co/fGdjK9Zj/Green-herbal-tea.jpg' },
+            { c:'coffee&tea', n:'Qashir Tea', p:70, i:'https://i.ibb.co/KzhHxPjt/Classic-Indian-Masala-Chai.jpg' },
+            { c:'coffee&tea', n:'Lewz Tea', p:70, i:'https://i.ibb.co/KzhHxPjt/Classic-Indian-Masala-Chai.jpg' },
+            { c:'coffee&tea', n:'Special Tea', p:100, i:'https://i.ibb.co/zVMdv8FV/When-life-gives-you-lemons-add-them-to-your-Biome-Brews-tea-Your-gut-will-thank-you-and-your-ta.jpg' },
+            { c:'coffee&tea', n:'Iced Milk', p:100, i:'https://i.ibb.co/MxKqQcZb/image.jpg' },
+            { c:'coffee&tea', n:'Iced Coffee', p:120, i:'https://i.ibb.co/XfChHDVP/Espresso-Coffee-Recipe.jpg' },
+            { c:'coffee&tea', n:'Iced Latte', p:150, i:'https://i.ibb.co/4nYRFdPn/Coffee-Art-Inspiration-Imagine-Coffee-Art-Home-Decor-Ideas.jpg' },
+            { c:'coffee&tea', n:'Soft Drink', p:70, i:'https://i.ibb.co/JRxVwy7b/download-20.jpg' },
+            { c:'coffee&tea', n:'Water', p:35, i:'https://i.ibb.co/MxKqQcZb/image.jpg' },
+            { c:'coffee&tea', n:'Sinq', p:120, i:'https://i.ibb.co/MxKqQcZb/image.jpg' }
+                ];
+
+      let cart = [];
+        let total = 0;
+        let base64Img = "";
+
+        // --- 3. የፋይል አያያዝ (Receipt Handler) ---
+        window.handleFile = (input) => {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 400; 
+                    const scaleSize = MAX_WIDTH / img.width;
+                    canvas.width = MAX_WIDTH;
+                    canvas.height = img.height * scaleSize;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    base64Img = canvas.toDataURL('image/jpeg', 0.1); 
+                    document.getElementById('preview').src = base64Img;
+                    document.getElementById('preview').classList.remove('hidden');
+                    document.getElementById('upload-text').innerText = "ደረሰኝ ተዘጋጅቷል ✅";
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
+
+        window.order = async (method, btn) => {
+    if(!base64Img) return alert("እባክዎ መጀመሪያ ደረሰኝ ይጫኑ!");
+    if(cart.length === 0) return alert("ካርቱ ባዶ ነው!");
+
+    const originalBtnText = btn.innerText;
+    btn.innerText = "በመላክ ላይ...";
+    btn.disabled = true;
+
+    // 1. ምግቦችን እና መጠጦችን ለይቶ ማውጣት
+    const foodCats = ['burger', 'wraps&SALAD', 'pizza', 'chicken', 'juice','breakfast&SALAD'];
+    const drinkCats = ['coffee&tea'];
+
+    let foodItems = [];
+    let drinkItems = [];
+
+    cart.forEach(cartItemName => {
+        const itemInfo = items.find(i => i.n === cartItemName);
+        if (itemInfo) {
+            if (foodCats.includes(itemInfo.c)) {
+                foodItems.push(cartItemName);
+            } else if (drinkCats.includes(itemInfo.c)) {
+                drinkItems.push(cartItemName);
+            }
         }
+    });
+
+    try {
+        // --- አዲስ፡ የዛሬውን ተራ ቁጥር መወሰኛ ሎጂክ ---
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        
+        // ዛሬ የተላኩትን ትዕዛዞች ብዛት ለማወቅ Supabase-ን መጠየቅ
+        const countRes = await fetch(`${SUPABASE_URL}/rest/v1/orders?select=id&created_at=gte.${today.toISOString()}`, {
+            headers: { 
+                "apikey": SUPABASE_KEY, 
+                "Authorization": `Bearer ${SUPABASE_KEY}` 
+            }
+        });
+        const todayData = await countRes.json();
+const currentCount = Array.isArray(todayData) ? todayData.length : 0;
+const nextNumber = currentCount + 1;
+const queueNumber = String(nextNumber).padStart(3, '0');
+
+        // 2. ፎቶውን ወደ ImgBB መጫን
+        const formData = new FormData();
+        formData.append("image", base64Img.split(",")[1]);
+        const imgResponse = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, {
+            method: "POST",
+            body: formData
+        });
+        const imgData = await imgResponse.json();
+        const imageUrl = imgData.data.url;
+
+        // 3. ወደ Supabase መላክ (ከ queue_no ጋር)
+        const supabaseResponse = await fetch(`${SUPABASE_URL}/rest/v1/orders`, {
+            method: "POST",
+            headers: {
+                "apikey": SUPABASE_KEY,
+                "Authorization": `Bearer ${SUPABASE_KEY}`,
+                "Content-Type": "application/json",
+                "Prefer": "return=representation"
+            },
+            body: JSON.stringify({
+                queue_no: queueNumber, // አዲሱ ተራ ቁጥር
+                items: cart.join(", "), 
+                food_list: foodItems.join(", ") || "EMPTY",
+                drink_list: drinkItems.join(", ") || "EMPTY",
+                total_price: total,
+                payment_method: method,
+                receipt_url: imageUrl,
+                status: "pending",
+                created_at: new Date().toISOString()
+            })
+        });
+
+        if (!supabaseResponse.ok) throw new Error("Supabase registration failed");
+
+        // 4. ለቴሌግራም መላክ (ከተራ ቁጥሩ ጋር)
+        const text = `🔹 **ተራ ቁጥር: #${queueNumber}**\n🍔 **ምግብ:** ${foodItems.join(", ") || "የለም"}\n🍹 **መጠጥ:** ${drinkItems.join(", ") || "የለም"}\n💰 **ዋጋ:** ${total} ETB\n💳 **ክፍያ:** ${method}`;
+        
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                chat_id: CHAT_ID,
+                photo: imageUrl,
+                caption: text,
+                parse_mode: "Markdown"
+            })
+        });
+
+        alert(`ትዕዛዝዎ ተልኳል! የእርስዎ ተራ ቁጥር #${queueNumber} ነው።`);
+        location.reload();
+
+    } catch (error) {
+        console.error("Error Details:", error);
+        alert("ስህተት ተፈጥሯል! እባክዎ ኢንተርኔትዎን ወይም የኮለም ስሞችን ያረጋግጡ።");
+        btn.innerText = originalBtnText; 
+        btn.disabled = false;
     }
+};
+        // --- 5. ሜኑውን ማሳያ እና ካርት (Menu & Cart) ---
+        window.filter = (cat) => {
+            const list = document.getElementById('menu-list');
+            const btns = document.querySelectorAll('.category-btn');
+            btns.forEach(b => b.classList.remove('active'));
+            
+            const clickedBtn = Array.from(btns).find(b => b.innerText.toLowerCase() === cat.toLowerCase());
+            if(clickedBtn) clickedBtn.classList.add('active');
 
-    function handleFile(input) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const p = document.getElementById('preview');
-            p.src = e.target.result; p.classList.remove('hidden');
-            document.getElementById('up-text').innerText = "Loaded ✅";
-            document.getElementById('up-text').classList.add('text-green-600');
-        }
-        reader.readAsDataURL(input.files[0]);
-    }
+            const filtered = cat === 'all' ? items : items.filter(i => i.c === cat);
+            list.innerHTML = filtered.map(item => `
+                <div class="bg-white rounded-[2rem] p-3 flex items-center gap-4 shadow-sm">
+                    <img src="${item.i}" class="w-24 h-24 rounded-[1.5rem] object-cover shadow-inner">
+                    <div class="flex-1">
+                        <h3 class="font-black text-gray-800 text-sm uppercase leading-tight">${item.n}</h3>
+                        <p class="text-orange-500 font-black text-lg">${item.p} <span class="text-[10px]">ETB</span></p>
+                    </div>
+                    <button onclick="add('${item.n}', ${item.p})" class="bg-gray-900 text-white w-10 h-10 rounded-full flex items-center justify-center">
+                        <i class="fas fa-plus text-xs"></i>
+                    </button>
+                </div>
+            `).join('');
+        };
 
-    function filter(cat, btn) {
-        document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        render(cat);
-    }
+        window.add = (n, p) => {
+            cart.push(n);
+            total += p;
+            document.getElementById('total').innerText = total;
+            document.getElementById('checkout').classList.remove('hidden');
+        };
 
-    function showPay() { document.getElementById('pay-modal').classList.remove('hidden'); }
-    function hidePay() { document.getElementById('pay-modal').classList.add('hidden'); }
+        window.resetCart = () => location.reload();
+        // አዲሶቹ ፈንክሽኖች እዚህ ተካተዋል
+      window.copyAccount = (text, bankId) => {
+    navigator.clipboard.writeText(text).then(() => {
+        const accDisplay = document.getElementById('acc-' + bankId);
+        const originalText = text;
+        
+        // ኮፒ ሲሆን ጽሁፉን ለጊዜው ይቀይራል
+        accDisplay.innerText = "ተገልብጧል! ✅";
+        accDisplay.style.color = "#10b981";
+        
+        // ከላይ Header ላይ ያለው በተን ካለ እሱንም ይቀይራል
+        const headerBtn = document.getElementById('header-acc-text');
+        if(headerBtn) headerBtn.innerText = "ተገልብጧል!";
 
-    render();
-</
+        setTimeout(() => {
+            accDisplay.innerText = originalText;
+            accDisplay.style.color = "";
+            if(headerBtn) headerBtn.innerText = "አካውንት ኮፒ";
+            
+            // ቁጥሩን ከገለበጠ በኋላ ሳጥኑን በራሱ እንዲዘጋ ከፈለግህ ከታች ያለውን መስመር ተጠቀም
+            // closePayment(); 
+        }, 1500);
+    });
+};
+
+window.showPayment = () => {
+    document.getElementById('payment-modal').classList.remove('hidden');
+};
+
+window.closePayment = () => {
+    document.getElementById('payment-modal').classList.add('hidden');
+};
+        filter('all');
+		
+    </script>
+	
+</body>
+</html>
