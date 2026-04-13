@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carmel Kitchen - Staff Access</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { background: #0f172a; color: white; font-family: 'Inter', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        .tab-btn { transition: all 0.3s ease; border-bottom: 2px solid transparent; }
+        .tab-btn.active { border-bottom: 2px solid #3b82f6; color: #3b82f6; }
+        input, select { transition: all 0.2s ease; }
+    </style>
+</head>
+<body class="p-6">
+    <div class="bg-slate-900 border border-white/10 p-8 rounded-[2.5rem] w-full max-w-md shadow-2xl">
+        <div class="text-center mb-8">
+            <h1 class="text-2xl font-black italic tracking-tighter">CARMEL KITCHEN</h1>
+            <p class="text-[10px] text-blue-400 uppercase tracking-[0.3em] mt-1">Staff Management System</p>
+        </div>
+
+        <div class="flex mb-8 border-b border-white/5 text-sm font-bold">
+            <button onclick="toggleTab('login')" id="login-tab" class="tab-btn active flex-1 py-3">መግቢያ (Login)</button>
+            <button onclick="toggleTab('register')" id="reg-tab" class="tab-btn flex-1 py-3 text-gray-500">አዲስ መመዝገቢያ</button>
+        </div>
+
+        <div id="login-section" class="space-y-4">
+            <div class="space-y-1">
+                <label class="text-[10px] text-gray-400 ml-2 font-bold uppercase">የተጠቃሚ ስም</label>
+                <input type="text" id="log-user" placeholder="Username" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl focus:outline-none focus:border-blue-500">
+            </div>
+            <div class="space-y-1">
+                <label class="text-[10px] text-gray-400 ml-2 font-bold uppercase">የይለፍ ቃል</label>
+                <input type="password" id="log-pass" placeholder="Password" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl focus:outline-none focus:border-blue-500">
+            </div>
+            <button onclick="handleLogin()" class="w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-2xl font-black shadow-lg transition-all active:scale-95">
+                ግባ 🚀
+            </button>
+        </div>
+
+        <div id="register-section" class="space-y-4 hidden">
+            <input type="text" id="reg-name" placeholder="ሙሉ ስም" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl focus:outline-none focus:border-blue-500">
+            <input type="text" id="reg-user" placeholder="የተጠቃሚ ስም (Username)" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl focus:outline-none focus:border-blue-500">
+            
+            <select id="reg-role" class="w-full bg-slate-800 border border-white/10 p-4 rounded-2xl text-gray-300 focus:outline-none focus:border-blue-500">
+                <option value="cashier.html">ካሸር (Cashier)</option>
+                <option value="kitchen.html">ኩሽና (Kitchen)</option>
+                <option value="bar.html">ባር (Bar)</option>
+            </select>
+            
+            <input type="password" id="reg-pass" placeholder="የይለፍ ቃል ፍጠር" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl focus:outline-none focus:border-blue-500">
+            
+            <input type="text" id="admin-code" placeholder="የባለቤት መለያ ቁጥር (Admin Code)" 
+                class="w-full bg-white/5 border border-orange-500/40 p-4 rounded-2xl text-orange-400 placeholder-orange-900/50 font-bold focus:outline-none focus:border-orange-500">
+            
+            <button onclick="handleRegister()" class="w-full bg-emerald-600 hover:bg-emerald-500 py-4 rounded-2xl font-black transition-all active:scale-95 shadow-lg">
+                አካውንት ክፈት ✅
+            </button>
+        </div>
+
+        <p id="msg" class="text-center text-[10px] mt-6 font-bold uppercase h-4"></p>
+    </div>
+
+    <script> // Supabase Configuration
+        const SUPABASE_URL = "https://icubeupnkfulidmtiqsz.supabase.co";
+        const SUPABASE_KEY ="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImljdWJldXBua2Z1bGlkbXRpcXN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyOTg5MTAsImV4cCI6MjA4ODg3NDkxMH0.-sRfDPpsTh5ohKUmG460xvlS0RW6jYg8SsYGDDI7P-k";
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // Tab መቀያየሪያ
+        function toggleTab(type) {
+            const isLogin = type === 'login';
+            document.getElementById('login-section').classList.toggle('hidden', !isLogin);
+            document.getElementById('register-section').classList.toggle('hidden', isLogin);
+            document.getElementById('login-tab').classList.toggle('active', isLogin);
+            document.getElementById('reg-tab').classList.toggle('active', !isLogin);
+            document.getElementById('login-tab').classList.toggle('text-gray-500', !isLogin);
+            document.getElementById('reg-tab').classList.toggle('text-gray-500', isLogin);
+            document.getElementById('msg').innerText = "";
+        }
+
+       async function handleRegister() {
+    const name = document.getElementById('reg-name').value;
+    const user = document.getElementById('reg-user').value;
+    const pass = document.getElementById('reg-pass').value;
+    const role = document.getElementById('reg-role').value;
+    const adminCode = document.getElementById('admin-code').value;
+
+    if (adminCode !== "CARMEL@121") {
+        alert("የተሳሳተ የባለቤት መለያ ቁጥር ነው!");
+        return;
+    }
+
+    if(!name || !user || !pass) return alert("እባክዎ ሁሉንም ይሙሉ!");
+
+    // --- አዲሱ መቆለፊያ (ለካሸር ብቻ) ---
+    if (role === "cashier.html") {
+        const { data: existingCashier } = await _supabase
+            .from('staff')
+            .select('id')
+            .eq('role', 'cashier.html')
+            .single();
+
+        if (existingCashier) {
+            alert("ስህተት፦ የካሸር አካውንት ቀድሞ ተፈጥሯል! ከአንድ በላይ ካሸር መመዝገብ አይቻልም።");
+            return; 
+        }
+    }
+    
+
+    const { error } = await _supabase
+        .from('staff')
+        .insert([{ full_name: name, username: user, password: pass, role: role }]);
+
+    if (error) {
+        alert("ስህተት ተፈጥሯል (ምናልባት ይህ Username ተይዟል)");
+    } else {
+        alert("አካውንት ተፈጥሯል! አሁን መግባት ይችላሉ።");
+        toggleTab('login');
+    }
+}
+
+        // --- Login Logic (መግቢያ) ---
+        async function handleLogin() {
+            const user = document.getElementById('log-user').value;
+            const pass = document.getElementById('log-pass').value;
+
+            if(!user || !pass) return alert("እባክዎ መረጃዎን ያስገቡ");
+
+            const { data, error } = await _supabase
+                .from('staff')
+                .select('*')
+                .eq('username', user)
+                .eq('password', pass)
+                .single();
+
+            if (data) {
+                sessionStorage.setItem('isLogged', 'true');
+                sessionStorage.setItem('staffName', data.full_name);
+                // ወደ ስራ ክፍሉ ይወስደዋል
+                window.location.href = data.role; 
+            } else {
+                const msg = document.getElementById('msg');
+                msg.innerText = "የተሳሳተ የተጠቃሚ ስም ወይም የይለፍ ቃል!";
+                msg.className = "text-center text-[10px] mt-6 font-bold uppercase text-red-500";
+            }
+        } </script>
+</body>
+</html>

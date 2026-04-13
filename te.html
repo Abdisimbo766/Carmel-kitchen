@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carmel Kitchen - Bar Display</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { background-color: #000; color: white; min-height: 100vh; padding: 2rem; font-family: 'Inter', sans-serif; }
+        .order-card { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .ready-status { border-color: #10b981 !important; background: rgba(16, 185, 129, 0.2) !important; box-shadow: 0 0 20px rgba(16, 185, 129, 0.2); }
+        .pulse-blue { animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0% { border-color: rgba(255, 255, 255, 0.1); }
+            50% { border-color: #3b82f6; }
+            100% { border-color: rgba(255, 255, 255, 0.1); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="fixed inset-0 -z-10 overflow-hidden">
+        <video autoplay muted loop playsinline class="w-full h-full object-cover opacity-25">
+            <source src="https://assets.mixkit.co/videos/preview/mixkit-pouring-iced-tea-into-a-glass-42805-large.mp4" type="video/mp4">
+        </video>
+        <div class="absolute inset-0 bg-gradient-to-b from-black/70 to-black/90"></div>
+    </div>
+
+    <div class="flex justify-between items-center mb-8 border-b border-white/10 pb-4 relative z-10">
+        <h1 class="text-3xl font-black text-blue-400 flex items-center gap-3">
+            <span>🍹 የባር (መጠጥ) መቀበያ</span>
+        </h1>
+        <div id="status" class="text-[10px] bg-blue-500/20 text-blue-400 px-4 py-2 rounded-full font-black uppercase tracking-[0.2em] border border-blue-500/30">
+            BAR LIVE
+        </div>
+    </div>
+
+    <div id="bar-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10"></div>
+
+    <audio id="notif-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
+
+    <script>
+        const SUPABASE_URL = "https://icubeupnkfulidmtiqsz.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImljdWJldXBua2Z1bGlkbXRpcXN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyOTg5MTAsImV4cCI6MjA4ODg3NDkxMH0.-sRfDPpsTh5ohKUmG460xvlS0RW6jYg8SsYGDDI7P-k";
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        const barGrid = document.getElementById('bar-grid');
+        const notifSound = document.getElementById('notif-sound');
+// ገጹ እንደተከፈተ ቼክ ያደርጋል
+if (sessionStorage.getItem('isLogged') !== 'true') {
+    // ገና ካልገባ ወደ መግቢያ ገጹ ይመልሰው
+    window.location.href = "login.html"; 
+}
+        // 1. ዳታ መጫኛ
+        async function loadOrders() {
+            const { data, error } = await supabaseClient
+                .from('orders')
+                .select('*')
+                .in('status', ['verified', 'ready'])
+                .neq('drink_list', 'EMPTY') 
+                .order('created_at', { ascending: true });
+
+            if (data) {
+                barGrid.innerHTML = '';
+                if (data.length === 0) {
+                    barGrid.innerHTML = '<p class="text-slate-600 text-center col-span-full py-20 uppercase font-black text-xs tracking-widest">ምንም የታዘዘ መጠጥ የለም</p>';
+                } else {
+                    data.forEach(order => renderOrder(order));
+                }
+            }
+        }
+
+        // 2. ካርድ መሳያ
+        function renderOrder(order) {
+            const isReady = order.status === 'ready';
+            const card = document.createElement('div');
+            card.className = `order-card backdrop-blur-xl border rounded-[2.5rem] p-7 shadow-2xl relative transition-all duration-500 ${isReady ? 'ready-status' : 'bg-white/5 border-white/10 pulse-blue'}`;
+
+            card.innerHTML = `
+                <div class="flex justify-between items-start mb-5">
+                    <div>
+                        <span class="text-blue-400 text-[10px] font-black uppercase tracking-widest italic opacity-70">ተራ ቁጥር</span>
+                        <h4 class="text-4xl font-black text-white italic tracking-tighter">#${order.queue_no || "000"}</h4>
+                    </div>
+                    <div class="text-right">
+                         <span class="block text-slate-500 text-[10px] font-bold">${new Date(order.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                         <span class="mt-2 inline-block px-3 py-1 rounded-full text-[8px] font-black uppercase ${isReady ? 'bg-emerald-500 text-white' : 'bg-blue-600 text-white animate-pulse'}">
+                            ${isReady ? 'ተጠናቋል' : 'በዝግጅት ላይ'}
+                         </span>
+                    </div>
+                </div>
+                <div class="bg-white/5 rounded-2xl p-5 mb-8 border border-white/5 min-h-[80px] flex items-center">
+                     <h3 class="text-xl font-bold text-white leading-tight uppercase tracking-wide">${order.drink_list}</h3>
+                </div>
+                <div class="mt-4">
+                    <button onclick="handleOrderAction('${order.id}', '${order.status}')" 
+                        class="w-full font-black py-4 px-6 rounded-2xl transition-all active:scale-95 shadow-lg flex items-center justify-center gap-2 ${isReady ? 'bg-white text-black hover:bg-gray-200' : 'bg-blue-600 hover:bg-blue-500 text-white'}">
+                        ${isReady ? '✅ አስተናጋጅ ወስዶታል' : '🍹 መጠጡ ተዘጋጅቷል'}
+                    </button>
+                </div>
+            `;
+            barGrid.appendChild(card);
+        }
+
+        // 3. ሎጂክ - መጠጡን ለብቻ መረከብ
+        async function handleOrderAction(orderId, currentStatus) {
+            if (currentStatus === 'ready') {
+                const { error } = await supabaseClient.from('orders').update({ drink_list: 'EMPTY' }).eq('id', orderId);
+                if (!error) {
+                    const { data } = await supabaseClient.from('orders').select('food_list').eq('id', orderId).single();
+                    // ምግቡም ከሌለ ወይም አስቀድሞ ተረክቦ EMPTY ከሆነ ትዕዛዙን ዝጋ
+                    if (data && (data.food_list === 'EMPTY' || !data.food_list)) {
+                        await supabaseClient.from('orders').update({ status: 'done' }).eq('id', orderId);
+                    }
+                    loadOrders();
+                }
+            } else {
+                const { error } = await supabaseClient.from('orders').update({ status: 'ready' }).eq('id', orderId);
+                if (!error) loadOrders();
+            }
+        }
+
+        // 4. Real-time Subscription
+        supabaseClient.channel('bar-live').on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, payload => {
+            if (payload.eventType === 'INSERT' || (payload.new && payload.new.status === 'verified')) {
+                notifSound.play().catch(() => {});
+            }
+            loadOrders();
+        }).subscribe();
+
+        // 5. ማስጀመሪያ
+        loadOrders();
+    </script>
+</body>
+</html>
