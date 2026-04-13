@@ -36,6 +36,16 @@
             </div>
         </div>
 
+        <div class="glass-card p-6 mb-8 border-l-8 border-l-red-500">
+            <h2 class="text-slate-800 text-sm font-black uppercase mb-4 flex items-center gap-2">💸 የዕለት ወጪ መመዝገቢያ (Expenses)</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <input id="ex-item" type="text" placeholder="የወጪው ምክንያት (Item/Reason)" class="bg-slate-100 p-3 rounded-xl text-sm outline-none focus:ring-2 ring-red-400">
+                <input id="ex-qty" type="number" placeholder="ብዛት (Qty)" class="bg-slate-100 p-3 rounded-xl text-sm outline-none focus:ring-2 ring-red-400">
+                <input id="ex-price" type="number" placeholder="ጠቅላላ ዋጋ (Total Cost)" class="bg-slate-100 p-3 rounded-xl text-sm outline-none focus:ring-2 ring-red-400">
+            </div>
+            <button onclick="saveExpense()" class="w-full mt-3 bg-red-600 text-white py-3 rounded-xl font-black text-sm hover:bg-red-700 transition-all">ወጪ መዝግብ & ለሥራ አስኪያጅ ላክ</button>
+        </div>
+
         <h1 class="text-xl font-black text-slate-800 mb-6 flex items-center gap-2">
             <span>🔔 በመጠባበቅ ላይ ያሉ ትዕዛዞች</span>
             <span id="pending-badge" class="bg-orange-500 text-white text-[10px] px-2 py-0.5 rounded-full">0</span>
@@ -47,7 +57,6 @@
     <div id="summaryModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-slate-900 w-full max-w-md rounded-[3rem] p-8 border border-white/10 shadow-2xl">
             <h2 class="text-orange-500 font-black text-center text-xl mb-6">የዛሬ የሽያጭ ማጠቃለያ</h2>
-            
             <div class="grid grid-cols-2 gap-4 mb-6">
                 <div class="bg-white/5 p-4 rounded-3xl text-center">
                     <p class="text-gray-400 text-[10px] uppercase mb-1">ጠቅላላ ሽያጭ</p>
@@ -58,13 +67,10 @@
                     <p id="order-count" class="text-xl font-black text-white">0</p>
                 </div>
             </div>
-
             <button id="details-btn" onclick="toggleDetails()" class="w-full py-3 text-gray-400 font-bold text-sm">ዝርዝር አሳይ ⬇️</button>
-            
             <div id="details-section" class="hidden mb-6 max-h-60 overflow-y-auto custom-scrollbar pr-2 text-white">
                 <div id="sales-items-list" class="space-y-2"></div>
             </div>
-
             <div class="flex gap-3">
                 <button onclick="closeSummary()" class="flex-1 bg-white/10 text-white py-4 rounded-2xl font-bold">ዝጋ</button>
                 <button onclick="adminVerifyClose()" class="flex-1 bg-orange-600 text-white py-4 rounded-2xl font-black">ሂሳብ ዝጋ & አውርድ</button>
@@ -80,15 +86,35 @@
         let isDetailsOpen = false;
         const readySound = new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3');
 
+        // SAVE EXPENSE LOGIC
+        async function saveExpense() {
+            const item = document.getElementById('ex-item').value;
+            const qty = document.getElementById('ex-qty').value;
+            const price = document.getElementById('ex-price').value;
+
+            if(!item || !qty || !price) return alert("እባክዎ ሁሉንም ሳጥኖች ይሙሉ!");
+
+            const { error } = await supabaseClient.from('expenses').insert([
+                { item_name: item, quantity: qty, amount: price, created_at: new Date() }
+            ]);
+
+            if(!error) {
+                alert("ወጪው በተሳካ ሁኔታ ተመዝግቧል!");
+                document.getElementById('ex-item').value = "";
+                document.getElementById('ex-qty').value = "";
+                document.getElementById('ex-price').value = "";
+            } else {
+                alert("ስህተት ተፈጥሯል: " + error.message);
+            }
+        }
+
         function cleanValue(val) { return (val && val !== "EMPTY" && val !== "null") ? val : ""; }
 
         function updateSalesUI() {
             const today = new Date().toLocaleDateString();
             const data = JSON.parse(localStorage.getItem('carmel_daily_log')) || {};
             const stats = data[today] || { total: 0, itemsSold: {} };
-            
             document.getElementById('daily-total').innerText = (stats.total || 0) + " Birr";
-            
             const listContainer = document.getElementById('item-stats-list');
             if (stats.itemsSold && Object.keys(stats.itemsSold).length > 0) {
                 listContainer.innerHTML = Object.entries(stats.itemsSold).map(([name, qty]) => `
@@ -103,15 +129,11 @@
 
         async function verifyOrder(orderId, price, fList, dList, iList) {
             const { error } = await supabaseClient.from('orders').update({ status: 'verified' }).eq('id', orderId);
-            
             if (!error) {
                 const today = new Date().toLocaleDateString();
                 let dailyLog = JSON.parse(localStorage.getItem('carmel_daily_log')) || {};
                 if (!dailyLog[today]) dailyLog[today] = { total: 0, itemsSold: {} };
-                
                 dailyLog[today].total += parseFloat(price);
-
-                // FIX: Use a Set to avoid double-counting items stored in multiple columns
                 let uniqueItems = new Set();
                 [fList, dList, iList].forEach(list => {
                     let cleaned = cleanValue(list);
@@ -121,11 +143,9 @@
                         });
                     }
                 });
-
                 uniqueItems.forEach(name => {
                     dailyLog[today].itemsSold[name] = (dailyLog[today].itemsSold[name] || 0) + 1;
                 });
-
                 localStorage.setItem('carmel_daily_log', JSON.stringify(dailyLog));
                 loadOrders();
             }
@@ -135,22 +155,13 @@
             const { data } = await supabaseClient.from('orders').select('*').eq('status', 'pending').order('created_at', { ascending: true });
             const list = document.getElementById('pending-list');
             document.getElementById('pending-badge').innerText = data ? data.length : 0;
-            
             list.innerHTML = '';
             if (data && data.length > 0) {
                 data.forEach(order => {
                     let combined = [cleanValue(order.food_list), cleanValue(order.drink_list), cleanValue(order.items)].filter(x => x !== "").join(", ") || "No Items";
-                    
                     const card = document.createElement('div');
                     card.className = "bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm";
-                    card.innerHTML = `
-                        <div class="flex justify-between items-center mb-4">
-                            <span class="text-3xl font-black">#${order.queue_no}</span>
-                            <span class="text-green-600 font-bold">${order.total_price} Birr</span>
-                        </div>
-                        <p class="text-slate-600 font-bold mb-6">${combined}</p>
-                        <button onclick="verifyOrder('${order.id}', '${order.total_price}', '${order.food_list}', '${order.drink_list}', '${order.items}')" 
-                                class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black hover:bg-black">አረጋግጥ (Verify)</button>`;
+                    card.innerHTML = `<div class="flex justify-between items-center mb-4"><span class="text-3xl font-black">#${order.queue_no}</span><span class="text-green-600 font-bold">${order.total_price} Birr</span></div><p class="text-slate-600 font-bold mb-6">${combined}</p><button onclick="verifyOrder('${order.id}', '${order.total_price}', '${order.food_list}', '${order.drink_list}', '${order.items}')" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black hover:bg-black">አረጋግጥ (Verify)</button>`;
                     list.appendChild(card);
                 });
             }
@@ -162,13 +173,11 @@
             const { data } = await supabaseClient.from('orders').select('id, queue_no').eq('status', 'ready').gte('created_at', today.toISOString());
             const tray = document.getElementById('ready-tray');
             tray.innerHTML = '';
-            
             if (data && data.length > 0) {
                 data.forEach(order => {
                     const icon = document.createElement('div');
                     icon.className = "bg-green-600 text-white pl-4 pr-1 py-1 rounded-full flex items-center gap-2 shadow-lg animate-bounce";
-                    icon.innerHTML = `<span class="font-black text-sm">#${order.queue_no} ዝግጁ</span>
-                                     <button onclick="orderOut('${order.id}')" class="bg-white/20 hover:bg-white/40 rounded-full p-1 text-[10px] font-black">Out</button>`;
+                    icon.innerHTML = `<span class="font-black text-sm">#${order.queue_no} ዝግጁ</span><button onclick="orderOut('${order.id}')" class="bg-white/20 hover:bg-white/40 rounded-full p-1 text-[10px] font-black">Out</button>`;
                     tray.appendChild(icon);
                 });
             }
@@ -206,12 +215,7 @@
                 if (data) {
                     data.forEach(order => {
                         let combined = [cleanValue(order.food_list), cleanValue(order.drink_list), cleanValue(order.items)].filter(x => x !== "").join(", ");
-                        listContainer.innerHTML += `
-                            <div class="flex justify-between bg-white/5 p-2 rounded-lg border border-white/5 text-xs">
-                                <span class="text-orange-400 font-bold">#${order.queue_no}</span>
-                                <span class="flex-1 px-2 truncate">${combined}</span>
-                                <span class="text-green-400 font-bold">${order.total_price}</span>
-                            </div>`;
+                        listContainer.innerHTML += `<div class="flex justify-between bg-white/5 p-2 rounded-lg border border-white/5 text-xs"><span class="text-orange-400 font-bold">#${order.queue_no}</span><span class="flex-1 px-2 truncate">${combined}</span><span class="text-green-400 font-bold">${order.total_price}</span></div>`;
                     });
                 }
                 document.getElementById('details-section').classList.remove('hidden');
@@ -230,27 +234,23 @@
                 if (confirm("የዛሬውን ሂሳብ ዘግተው ሽያጩን በፋይል ማውረድ ይፈልጋሉ?")) {
                     const today = new Date(); today.setHours(0,0,0,0);
                     const { data } = await supabaseClient.from('orders').select('*').gte('created_at', today.toISOString()).neq('status', 'cancelled');
-                    
                     let csv = "\uFEFFተራ ቁጥር,ትዕዛዝ,ዋጋ,ሰዓት\n";
                     data.forEach(r => {
                         let items = [cleanValue(r.food_list), cleanValue(r.drink_list), cleanValue(r.items)].filter(x => x !== "").join(" + ");
                         csv += `${r.queue_no},"${items}",${r.total_price},${new Date(r.created_at).toLocaleTimeString()}\n`;
                     });
-
                     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
                     const link = document.createElement("a");
                     link.href = URL.createObjectURL(blob);
                     link.download = `Carmel_Sales_${new Date().toLocaleDateString()}.csv`;
                     link.click();
-
                     localStorage.removeItem('carmel_daily_log');
-                    alert("ሂሳብ ተዘግቷል! ገጹ አሁን ይታደሳል።");
+                    alert("ሂሳብ ተዘግቷል!");
                     window.location.reload();
                 }
             } else if (pass !== null) alert("የተሳሳተ የባለቤትነት ቁጥር ነው!");
         }
 
-        // Real-time listener
         supabaseClient.channel('custom-all-channel')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
                 if (payload.new && payload.new.status === 'ready') {
@@ -261,7 +261,6 @@
             })
             .subscribe();
 
-        // Initial Load
         loadOrders();
         loadReadyOrders();
     </script>
