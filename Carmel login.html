@@ -35,7 +35,7 @@
                 <input type="password" id="log-pass" placeholder="Password" class="w-full bg-white/5 border border-white/10 p-4 rounded-2xl focus:outline-none focus:border-blue-500">
             </div>
             <button onclick="handleLogin()" class="w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-2xl font-black shadow-lg transition-all active:scale-95">
-                ግባ 🚀
+                ገባ 🚀
             </button>
         </div>
 
@@ -62,12 +62,11 @@
         <p id="msg" class="text-center text-[10px] mt-6 font-bold uppercase h-4"></p>
     </div>
 
-    <script> // Supabase Configuration
-        const SUPABASE_URL = "https://icubeupnkfulidmtiqsz.supabase.co";
-        const SUPABASE_KEY ="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImljdWJldXBua2Z1bGlkbXRpcXN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyOTg5MTAsImV4cCI6MjA4ODg3NDkxMH0.-sRfDPpsTh5ohKUmG460xvlS0RW6jYg8SsYGDDI7P-k";
+    <script>
+        const SUPABASE_URL = "https://csdpoyqbkjljaqknunyv.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_GZ9zqNM1CPfdyaEhLY_pOg_Fs4CSfrC";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Tab መቀያየሪያ
         function toggleTab(type) {
             const isLogin = type === 'login';
             document.getElementById('login-section').classList.toggle('hidden', !isLogin);
@@ -79,48 +78,48 @@
             document.getElementById('msg').innerText = "";
         }
 
-       async function handleRegister() {
-    const name = document.getElementById('reg-name').value;
-    const user = document.getElementById('reg-user').value;
-    const pass = document.getElementById('reg-pass').value;
-    const role = document.getElementById('reg-role').value;
-    const adminCode = document.getElementById('admin-code').value;
+        async function handleRegister() {
+            const name = document.getElementById('reg-name').value;
+            const user = document.getElementById('reg-user').value;
+            const pass = document.getElementById('reg-pass').value;
+            const role = document.getElementById('reg-role').value;
+            const adminCode = document.getElementById('admin-code').value;
 
-    if (adminCode !== "CARMEL@121") {
-        alert("የተሳሳተ የባለቤት መለያ ቁጥር ነው!");
-        return;
-    }
+            // Updated Admin Verification
+            if (adminCode !== "CARMEL@321") {
+                alert("የተሳሳተ የባለቤት መለያ ቁጥር ነው!");
+                return;
+            }
 
-    if(!name || !user || !pass) return alert("እባክዎ ሁሉንም ይሙሉ!");
+            if(!name || !user || !pass) return alert("እባክዎ ሁሉንም ይሙሉ!");
 
-    // --- አዲሱ መቆለፊያ (ለካሸር ብቻ) ---
-    if (role === "cashier.html") {
-        const { data: existingCashier } = await _supabase
-            .from('staff')
-            .select('id')
-            .eq('role', 'cashier.html')
-            .single();
+            // Restriction: Only one cashier account allowed
+            if (role === "cashier.html") {
+                const { data: existingCashier } = await _supabase
+                    .from('staff')
+                    .select('id')
+                    .eq('role', 'cashier.html')
+                    .maybeSingle();
 
-        if (existingCashier) {
-            alert("ስህተት፦ የካሸር አካውንት ቀድሞ ተፈጥሯል! ከአንድ በላይ ካሸር መመዝገብ አይቻልም።");
-            return; 
+                if (existingCashier) {
+                    alert("ስህተት፦ የካሸር አካውንት ቀድሞ ተፈጥሯል! ከአንድ በላይ ካሸር መመዝገብ አይቻልም።");
+                    return; 
+                }
+            }
+
+            const { error } = await _supabase
+                .from('staff')
+                .insert([{ full_name: name, username: user, password: pass, role: role }]);
+
+            if (error) {
+                alert("ስህተት ተፈጥሯል (Username ተይዞ ሊሆን ይችላል)");
+                console.error(error);
+            } else {
+                alert("አካውንት ተፈጥሯል! አሁን መግባት ይችላሉ።");
+                toggleTab('login');
+            }
         }
-    }
-    
 
-    const { error } = await _supabase
-        .from('staff')
-        .insert([{ full_name: name, username: user, password: pass, role: role }]);
-
-    if (error) {
-        alert("ስህተት ተፈጥሯል (ምናልባት ይህ Username ተይዟል)");
-    } else {
-        alert("አካውንት ተፈጥሯል! አሁን መግባት ይችላሉ።");
-        toggleTab('login');
-    }
-}
-
-        // --- Login Logic (መግቢያ) ---
         async function handleLogin() {
             const user = document.getElementById('log-user').value;
             const pass = document.getElementById('log-pass').value;
@@ -132,18 +131,18 @@
                 .select('*')
                 .eq('username', user)
                 .eq('password', pass)
-                .single();
+                .maybeSingle();
 
             if (data) {
                 sessionStorage.setItem('isLogged', 'true');
                 sessionStorage.setItem('staffName', data.full_name);
-                // ወደ ስራ ክፍሉ ይወስደዋል
                 window.location.href = data.role; 
             } else {
                 const msg = document.getElementById('msg');
                 msg.innerText = "የተሳሳተ የተጠቃሚ ስም ወይም የይለፍ ቃል!";
                 msg.className = "text-center text-[10px] mt-6 font-bold uppercase text-red-500";
             }
-        } </script>
+        }
+    </script>
 </body>
 </html>
