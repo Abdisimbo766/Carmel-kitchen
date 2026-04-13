@@ -1,251 +1,246 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="am">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carmel Admin | POS & Kitchen</title>
+    <title>Carmel - Cashier Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; background: #0f172a; color: white; }
-        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
-        .tab-active { border-bottom: 4px solid #f39c12; color: #f39c12; }
-        .hide-scroll::-webkit-scrollbar { display: none; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.1); border-radius: 10px; }
     </style>
 </head>
-<body class="p-2 md:p-6">
+<body class="bg-slate-50 p-4 pb-24">
 
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="glass p-4 rounded-3xl">
-            <p class="text-[10px] uppercase font-bold text-gray-400">Total Sales</p>
-            <h2 class="text-xl font-black text-green-400"><span id="stat-sales">0</span> <small class="text-xs">ETB</small></h2>
+    <div id="ready-tray" class="max-w-4xl mx-auto mb-6 flex flex-wrap gap-3">
         </div>
-        <div class="glass p-4 rounded-3xl">
-            <p class="text-[10px] uppercase font-bold text-gray-400">Daily Expenses</p>
-            <h2 class="text-xl font-black text-red-400"><span id="stat-exp">0</span> <small class="text-xs">ETB</small></h2>
+
+    <div class="max-w-4xl mx-auto">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200">
+                <h2 class="text-slate-400 text-[10px] uppercase font-black tracking-widest mb-1">የዛሬ ጠቅላላ ሽያጭ</h2>
+                <div class="flex justify-between items-end">
+                    <p id="daily-total" class="text-4xl font-black text-green-600">0 Birr</p>
+                    <button onclick="openSummary()" class="text-[10px] bg-slate-100 px-3 py-2 rounded-xl font-bold hover:bg-slate-200">ሪፖርት አሳይ 📊</button>
+                </div>
+            </div>
+            
+            <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200">
+                <h2 class="text-slate-400 text-[10px] uppercase font-black tracking-widest mb-3">የተሸጡ ምግቦች ዝርዝር</h2>
+                <div id="item-stats-list" class="flex flex-wrap gap-2 max-h-[100px] overflow-y-auto custom-scrollbar">
+                    <p class="text-slate-400 text-xs italic">ሽያጭ የለም...</p>
+                </div>
+            </div>
         </div>
-        <div class="glass p-4 rounded-3xl text-orange-400">
-            <p class="text-[10px] uppercase font-bold text-gray-400">Net Profit</p>
-            <h2 class="text-xl font-black" id="stat-net">0</h2>
-        </div>
-        <div class="glass p-4 rounded-3xl">
-            <p class="text-[10px] uppercase font-bold text-gray-400">Order Count</p>
-            <h2 class="text-xl font-black" id="stat-count">#0</h2>
-        </div>
+
+        <h1 class="text-xl font-black text-slate-800 mb-6 flex items-center gap-2">
+            <span>🔔 በመጠባበቅ ላይ ያሉ ትዕዛዞች</span>
+            <span id="pending-badge" class="bg-orange-500 text-white text-[10px] px-2 py-0.5 rounded-full">0</span>
+        </h1>
+
+        <div id="pending-list" class="space-y-4"></div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        <div class="lg:col-span-8 space-y-6">
-            <div class="flex gap-8 border-b border-white/10 px-4">
-                <button onclick="switchTab('pos')" id="btn-pos" class="pb-4 font-black uppercase text-xs tab-active">New Sale (POS)</button>
-                <button onclick="switchTab('incoming')" id="btn-incoming" class="pb-4 font-black uppercase text-xs text-gray-500">Online Orders <span id="online-badge" class="bg-red-500 text-white px-2 py-0.5 rounded-full text-[10px] hidden">0</span></button>
-                <button onclick="switchTab('ledger')" id="btn-ledger" class="pb-4 font-black uppercase text-xs text-gray-500">Expenses/Ledger</button>
-            </div>
-
-            <div id="tab-pos" class="space-y-4">
-                <div class="grid grid-cols-3 md:grid-cols-5 gap-2 overflow-x-auto hide-scroll">
-                    <button onclick="addToCart('Special Burger', 650)" class="glass p-3 rounded-2xl text-[10px] font-bold hover:bg-orange-500">Burger</button>
-                    <button onclick="addToCart('Special Pizza', 690)" class="glass p-3 rounded-2xl text-[10px] font-bold hover:bg-orange-500">Pizza</button>
-                    <button onclick="addToCart('Jebena Coffee', 40)" class="glass p-3 rounded-2xl text-[10px] font-bold hover:bg-orange-500">Coffee</button>
-                    <button onclick="addToCart('Avocado Juice', 180)" class="glass p-3 rounded-2xl text-[10px] font-bold hover:bg-orange-500">Juice</button>
+    <div id="summaryModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 w-full max-w-md rounded-[3rem] p-8 border border-white/10 shadow-2xl">
+            <h2 class="text-orange-500 font-black text-center text-xl mb-6">የዛሬ የሽያጭ ማጠቃለያ</h2>
+            
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="bg-white/5 p-4 rounded-3xl text-center">
+                    <p class="text-gray-400 text-[10px] uppercase mb-1">ጠቅላላ ሽያጭ</p>
+                    <p id="total-sales" class="text-xl font-black text-green-400">0 ETB</p>
                 </div>
-                <div class="glass rounded-[2rem] p-6">
-                    <h3 class="font-black mb-4">Current Order List</h3>
-                    <div id="pos-cart" class="space-y-2 min-h-[200px]">
-                        </div>
-                    <div class="mt-6 flex justify-between items-center pt-4 border-t border-white/10">
-                        <div>
-                            <p class="text-xs text-gray-400">Total Amount</p>
-                            <h2 class="text-3xl font-black text-orange-500"><span id="pos-total">0</span> <small class="text-sm">ETB</small></h2>
-                        </div>
-                        <button onclick="confirmPOSOrder()" class="bg-orange-500 hover:bg-orange-600 px-8 py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">Send to Kitchen</button>
-                    </div>
+                <div class="bg-white/5 p-4 rounded-3xl text-center">
+                    <p class="text-gray-400 text-[10px] uppercase mb-1">የትዕዛዝ ብዛት</p>
+                    <p id="order-count" class="text-xl font-black text-white">0</p>
                 </div>
             </div>
 
-            <div id="tab-incoming" class="hidden space-y-4">
-                <div id="incoming-list" class="space-y-3">
-                    <p class="text-center text-gray-500 py-10">No pending online orders...</p>
-                </div>
+            <button id="details-btn" onclick="toggleDetails()" class="w-full py-3 text-gray-400 font-bold text-sm">ዝርዝር አሳይ ⬇️</button>
+            
+            <div id="details-section" class="hidden mb-6 max-h-60 overflow-y-auto custom-scrollbar pr-2">
+                <div id="sales-items-list" class="space-y-2"></div>
             </div>
 
-            <div id="tab-ledger" class="hidden space-y-4">
-                <div class="glass p-6 rounded-[2rem] grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <h3 class="font-black mb-4">Record Daily Purchase</h3>
-                        <div class="space-y-3">
-                            <input id="exp-name" type="text" placeholder="Item (e.g., Charcoal, Meat, Milk)" class="w-full bg-white/5 border border-white/10 p-4 rounded-xl outline-none">
-                            <input id="exp-amt" type="number" placeholder="Amount (ETB)" class="w-full bg-white/5 border border-white/10 p-4 rounded-xl outline-none">
-                            <button onclick="addExpense()" class="w-full bg-red-500/20 text-red-400 p-4 rounded-xl font-black uppercase">Add Expense</button>
-                        </div>
-                    </div>
-                    <div>
-                        <h3 class="font-black mb-4">Expense History</h3>
-                        <div id="exp-history" class="space-y-2 text-xs">
-                            </div>
-                    </div>
-                </div>
+            <div class="flex gap-3">
+                <button onclick="closeSummary()" class="flex-1 bg-white/10 text-white py-4 rounded-2xl font-bold">ዝጋ</button>
+                <button onclick="adminVerifyClose()" class="flex-1 bg-orange-600 text-white py-4 rounded-2xl font-black shadow-lg shadow-orange-900/20">ሂሳብ ዝጋ & አውርድ</button>
             </div>
         </div>
-
-        <div class="lg:col-span-4">
-            <div class="glass rounded-[2.5rem] p-6 h-full border-l-4 border-orange-500">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-black uppercase italic">Kitchen Queue</h2>
-                    <span class="bg-orange-500 text-black text-[10px] font-black px-3 py-1 rounded-full">LIVE</span>
-                </div>
-                <div id="kitchen-queue" class="space-y-4">
-                    </div>
-            </div>
-        </div>
-
     </div>
 
     <script>
-        let totalSales = 0;
-        let totalExp = 0;
-        let orderCount = 100; // Starting order number
-        let currentCart = [];
-        let expenses = [];
+        const SUPABASE_URL = "https://icubeupnkfulidmtiqsz.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImljdWJldXBua2Z1bGlkbXRpcXN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyOTg5MTAsImV4cCI6MjA4ODg3NDkxMH0.-sRfDPpsTh5ohKUmG460xvlS0RW6jYg8SsYGDDI7P-k";
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        let isDetailsOpen = false;
 
-        // 1. POS LOGIC
-        function addToCart(name, price) {
-            currentCart.push({ name, price });
-            renderCart();
+        // Sound for finished orders
+        const readySound = new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3');
+
+        function cleanValue(val) { return (val && val !== "EMPTY" && val !== "null") ? val : ""; }
+
+        function updateSalesUI() {
+            const today = new Date().toLocaleDateString();
+            const data = JSON.parse(localStorage.getItem('carmel_daily_log')) || {};
+            const stats = data[today] || { total: 0, itemsSold: {} };
+            document.getElementById('daily-total').innerText = (stats.total || 0) + " Birr";
+            const listContainer = document.getElementById('item-stats-list');
+            if (stats.itemsSold && Object.keys(stats.itemsSold).length > 0) {
+                listContainer.innerHTML = Object.entries(stats.itemsSold).map(([name, qty]) => `
+                    <div class="bg-slate-100 px-3 py-1 rounded-full flex items-center gap-2 border border-slate-200">
+                        <span class="text-[11px] font-bold text-slate-700">${name}</span>
+                        <span class="bg-orange-600 text-white text-[9px] px-1.5 rounded-full font-black">${qty}</span>
+                    </div>`).join('');
+            }
         }
 
-        function renderCart() {
-            const list = document.getElementById('pos-cart');
-            let total = 0;
-            list.innerHTML = currentCart.map((item, i) => {
-                total += item.price;
-                return `<div class="flex justify-between items-center bg-white/5 p-3 rounded-xl">
-                    <span class="text-xs font-bold uppercase">${item.name}</span>
-                    <div class="flex items-center gap-4">
-                        <span class="font-bold text-orange-400">${item.price}</span>
-                        <button onclick="removeFromCart(${i})" class="text-red-500 font-bold">×</button>
-                    </div>
-                </div>`;
-            }).join('');
-            document.getElementById('pos-total').innerText = total;
+        async function openSummary() {
+            document.getElementById('summaryModal').classList.remove('hidden');
+            const today = new Date(); today.setHours(0,0,0,0);
+            const { data } = await supabaseClient.from('orders').select('total_price').gte('created_at', today.toISOString()).in('status', ['verified', 'ready', 'done', 'pending']); 
+            if (data) {
+                let total = data.reduce((acc, curr) => acc + parseFloat(curr.total_price || 0), 0);
+                document.getElementById('total-sales').innerText = total + " ETB";
+                document.getElementById('order-count').innerText = data.length;
+            }
         }
 
-        function removeFromCart(i) {
-            currentCart.splice(i, 1);
-            renderCart();
+        function closeSummary() {
+            document.getElementById('summaryModal').classList.add('hidden');
+            document.getElementById('details-section').classList.add('hidden');
+            document.getElementById('details-btn').innerText = "ዝርዝር አሳይ ⬇️";
+            isDetailsOpen = false;
         }
 
-        // 2. ORDER CONFIRMATION (BOTH POS & ONLINE)
-        function confirmPOSOrder() {
-            if (currentCart.length === 0) return;
-            const total = parseInt(document.getElementById('pos-total').innerText);
-            const itemsList = currentCart.map(i => i.name).join(', ');
-            
-            processOrderToKitchen(orderCount++, itemsList, total, "Cashier POS");
-            currentCart = [];
-            renderCart();
+        async function toggleDetails() {
+            const listContainer = document.getElementById('sales-items-list');
+            const btn = document.getElementById('details-btn');
+            if (!isDetailsOpen) {
+                const today = new Date(); today.setHours(0,0,0,0);
+                const { data } = await supabaseClient.from('orders').select('food_list, drink_list, items, total_price, queue_no').gte('created_at', today.toISOString()).in('status', ['verified', 'ready', 'done', 'pending']); 
+                listContainer.innerHTML = '';
+                if (data) {
+                    data.forEach(order => {
+                        let parts = [cleanValue(order.food_list), cleanValue(order.drink_list), cleanValue(order.items)].filter(x => x !== "");
+                        let combined = parts.join(", ") || "No Data";
+                        listContainer.innerHTML += `
+                            <div class="flex justify-between bg-white/5 p-2 rounded-lg border border-white/5 mb-2">
+                                <span class="text-orange-400 font-bold">#${order.queue_no}</span>
+                                <span class="text-white flex-1 px-2 truncate text-[11px]">${combined}</span>
+                                <span class="text-green-400 font-bold text-xs">${order.total_price}</span>
+                            </div>`;
+                    });
+                }
+                document.getElementById('details-section').classList.remove('hidden');
+                btn.innerText = "ዝርዝር ደብቅ ⬆️";
+                isDetailsOpen = true;
+            } else {
+                document.getElementById('details-section').classList.add('hidden');
+                btn.innerText = "ዝርዝር አሳይ ⬇️";
+                isDetailsOpen = false;
+            }
         }
 
-        function processOrderToKitchen(num, items, money, source) {
-            // Update Money
-            totalSales += money;
-            updateStats();
-
-            // Send to Kitchen Queue
-            const queue = document.getElementById('kitchen-queue');
-            const orderDiv = document.createElement('div');
-            orderDiv.className = "bg-white/5 border border-white/10 p-4 rounded-2xl space-y-2 animate-pulse";
-            orderDiv.innerHTML = `
-                <div class="flex justify-between items-center">
-                    <span class="text-[10px] font-black bg-orange-500 text-black px-2 py-0.5 rounded">#${num}</span>
-                    <span class="text-[10px] text-gray-500">${source}</span>
-                </div>
-                <p class="text-xs font-bold">${items}</p>
-                <button onclick="this.parentElement.remove()" class="w-full mt-2 py-2 bg-green-500/10 text-green-500 rounded-lg text-[10px] font-black uppercase">Complete & Remove</button>
-            `;
-            queue.prepend(orderDiv);
+        async function verifyOrder(orderId, price, fList, dList, iList) {
+            const { error } = await supabaseClient.from('orders').update({ status: 'verified' }).eq('id', orderId);
+            if (!error) {
+                const today = new Date().toLocaleDateString();
+                let dailyLog = JSON.parse(localStorage.getItem('carmel_daily_log')) || {};
+                if (!dailyLog[today]) dailyLog[today] = { total: 0, itemsSold: {} };
+                dailyLog[today].total += parseFloat(price);
+                [fList, dList, iList].forEach(list => {
+                    let cleaned = cleanValue(list);
+                    if (cleaned) {
+                        cleaned.split(', ').forEach(name => {
+                            if(name) dailyLog[today].itemsSold[name] = (dailyLog[today].itemsSold[name] || 0) + 1;
+                        });
+                    }
+                });
+                localStorage.setItem('carmel_daily_log', JSON.stringify(dailyLog));
+                loadOrders();
+            }
         }
 
-        // 3. EXPENSE LOGIC
-        function addExpense() {
-            const name = document.getElementById('exp-name').value;
-            const amt = parseInt(document.getElementById('exp-amt').value);
-            if (!name || !amt) return;
-
-            totalExp += amt;
-            expenses.unshift({ name, amt, time: new Date().toLocaleTimeString() });
-            
-            const log = document.getElementById('exp-history');
-            log.innerHTML = expenses.map(e => `
-                <div class="flex justify-between p-2 bg-red-500/5 rounded-lg mb-1 border border-red-500/10">
-                    <span>${e.name}</span>
-                    <span class="font-bold text-red-400">-${e.amt} ETB</span>
-                </div>
-            `).join('');
-            
-            updateStats();
-            document.getElementById('exp-name').value = '';
-            document.getElementById('exp-amt').value = '';
+        async function adminVerifyClose() {
+            const adminPass = prompt("ሂሳብ ለመዝጋት የባለቤትነት ሚስጥር ቁጥር ያስገቡ፦");
+            if (adminPass === "BOSS2026") await closeDayAccount();
+            else if (adminPass !== null) alert("የተሳሳተ የባለቤትነት ቁጥር ነው!");
         }
 
-        function updateStats() {
-            document.getElementById('stat-sales').innerText = totalSales;
-            document.getElementById('stat-exp').innerText = totalExp;
-            document.getElementById('stat-net').innerText = (totalSales - totalExp) + " ETB";
-            document.getElementById('stat-count').innerText = "#" + (orderCount - 100);
+        async function closeDayAccount() {
+            if (!confirm("የዛሬውን ሂሳብ ዘግተው ሽያጩን በፋይል (Excel) ማውረድ ይፈልጋሉ?")) return;
+            const today = new Date(); today.setHours(0,0,0,0);
+            const { data: salesData } = await supabaseClient.from('orders').select('queue_no, food_list, drink_list, items, total_price, payment_method, created_at').gte('created_at', today.toISOString()).neq('status', 'cancelled');
+            if (!salesData || salesData.length === 0) return alert("ዳታ አልተገኘም!");
+            await supabaseClient.from('orders').update({ status: 'archived' }).gte('created_at', today.toISOString()).in('status', ['verified', 'ready', 'done', 'pending']);
+            let csvContent = "\uFEFFተራ ቁጥር,ትዕዛዝ,ዋጋ,አከፋፈል,ሰዓት\n";
+            salesData.forEach(row => {
+                let items = [cleanValue(row.food_list), cleanValue(row.drink_list), cleanValue(row.items)].filter(x => x !== "").join(" + ");
+                csvContent += `${row.queue_no},"${items}",${row.total_price},${row.payment_method || 'Cash'},${new Date(row.created_at).toLocaleTimeString()}\n`;
+            });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }));
+            link.download = `Carmel_Sales_${today.toLocaleDateString().replace(/\//g, '-')}.csv`;
+            link.click();
+            localStorage.removeItem('carmel_daily_log');
+            alert("ሂሳብ ተዘግቷል!");
+            window.location.reload(); 
         }
 
-        // UI TAB SWITCHING
-        function switchTab(tab) {
-            ['pos', 'incoming', 'ledger'].forEach(t => document.getElementById('tab-'+t).classList.add('hidden'));
-            ['pos', 'incoming', 'ledger'].forEach(t => document.getElementById('btn-'+t).classList.remove('tab-active'));
-            document.getElementById('tab-'+tab).classList.remove('hidden');
-            document.getElementById('btn-'+tab).classList.add('tab-active');
+        // --- READY ORDERS LOGIC (New) ---
+        async function loadReadyOrders() {
+            const today = new Date(); today.setHours(0,0,0,0);
+            const { data } = await supabaseClient.from('orders').select('id, queue_no').eq('status', 'ready').gte('created_at', today.toISOString());
+            const tray = document.getElementById('ready-tray');
+            tray.innerHTML = '';
+            if (data && data.length > 0) {
+                data.forEach(order => {
+                    const icon = document.createElement('div');
+                    icon.className = "bg-green-600 text-white pl-4 pr-1 py-1 rounded-full flex items-center gap-2 shadow-lg animate-bounce";
+                    icon.innerHTML = `<span class="font-black text-sm">#${order.queue_no} ዝግጁ</span>
+                                     <button onclick="orderOut('${order.id}')" class="bg-white/20 hover:bg-white/40 rounded-full p-1 text-[10px] font-black uppercase">Out</button>`;
+                    tray.appendChild(icon);
+                });
+            }
         }
+
+        async function orderOut(id) {
+            // Mark as 'done' so it disappears from the tray
+            await supabaseClient.from('orders').update({ status: 'done' }).eq('id', id);
+            loadReadyOrders();
+        }
+
+        async function loadOrders() {
+            const { data } = await supabaseClient.from('orders').select('*').eq('status', 'pending');
+            const list = document.getElementById('pending-list');
+            document.getElementById('pending-badge').innerText = data ? data.length : 0;
+            list.innerHTML = '';
+            if (data) {
+                data.forEach(order => {
+                    let combined = [cleanValue(order.food_list), cleanValue(order.drink_list), cleanValue(order.items)].filter(x => x !== "").join(", ") || "No Items";
+                    const card = document.createElement('div');
+                    card.className = "bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm";
+                    card.innerHTML = `<div class="flex justify-between items-center mb-4"><span class="text-3xl font-black">#${order.queue_no}</span><span class="text-green-600 font-bold">${order.total_price} Birr</span></div><p class="text-slate-600 font-bold mb-6">${combined}</p><button onclick="verifyOrder('${order.id}', '${order.total_price}', '${order.food_list}', '${order.drink_list}', '${order.items}')" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black hover:bg-black transition-all">አረጋግጥ (Verify)</button>`;
+                    list.appendChild(card);
+                });
+            }
+            updateSalesUI();
+        }
+
+        supabaseClient.channel('refresh')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
+                if (payload.new && payload.new.status === 'ready') {
+                    readySound.play();
+                    loadReadyOrders();
+                }
+                loadOrders();
+            })
+            .subscribe();
+
+        loadOrders();
+        loadReadyOrders();
     </script>
 </body>
 </html>
-// Function to check for new orders from the customer site
-function checkOnlineOrders() {
-    let orders = JSON.parse(localStorage.getItem('onlineOrders') || '[]');
-    const incomingList = document.getElementById('incoming-list');
-    const badge = document.getElementById('online-badge');
-
-    if (orders.length > 0) {
-        badge.innerText = orders.length;
-        badge.classList.remove('hidden');
-        
-        incomingList.innerHTML = orders.map((order, index) => `
-            <div class="glass p-4 rounded-2xl border-l-4 border-red-500 flex justify-between items-center mb-2">
-                <div>
-                    <p class="text-[10px] font-bold text-red-400 uppercase">New Online Order #${order.id}</p>
-                    <p class="text-xs font-black">${order.items}</p>
-                    <p class="text-sm font-bold text-orange-500">${order.total} ETB</p>
-                </div>
-                <button onclick="acceptOrder(${index})" class="bg-green-500 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase">Confirm</button>
-            </div>
-        `).join('');
-    } else {
-        badge.classList.add('hidden');
-        incomingList.innerHTML = '<p class="text-center text-gray-500 py-10">No pending online orders...</p>';
-    }
-}
-
-// When cashier clicks "Confirm"
-function acceptOrder(index) {
-    let orders = JSON.parse(localStorage.getItem('onlineOrders') || '[]');
-    const order = orders[index];
-
-    // Move to Kitchen Queue and Add to Sales
-    processOrderToKitchen(order.id, order.items, order.total, "Online");
-
-    // Remove from pending list
-    orders.splice(index, 1);
-    localStorage.setItem('onlineOrders', JSON.stringify(orders));
-    checkOnlineOrders();
-}
-
-// Run the check every 2 seconds
-setInterval(checkOnlineOrders, 2000);
