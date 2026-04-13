@@ -3,173 +3,207 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carmel POS - Full Menu</title>
+    <title>Carmel Admin | POS & Kitchen</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body { background: #000; color: white; font-family: 'Inter', sans-serif; height: 100vh; overflow: hidden; }
-        .card { background: #0a0a0a; border: 1px solid #1a1a1a; border-radius: 1rem; }
-        /* Left Sidebar Categories */
-        .cat-btn { background: #111; border: 1px solid #222; padding: 18px 5px; border-radius: 12px; transition: 0.2s; text-align: center; }
-        .cat-btn:hover { border-color: #f97316; background: #1a1a1a; }
-        .cat-btn.active { background: #f97316; color: black; border-color: #f97316; font-weight: 900; }
-        /* Main Item Buttons */
-        .item-btn { background: #111; border: 1px solid #222; padding: 12px 6px; border-radius: 10px; font-size: 10px; text-align: center; height: 100%; display: flex; flex-direction: column; justify-content: center; min-height: 70px; }
-        .item-btn:hover { border-color: #f97316; transform: scale(1.02); }
-        .item-btn:active { transform: scale(0.95); }
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background: #0f172a; color: white; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        .tab-active { border-bottom: 4px solid #f39c12; color: #f39c12; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body class="p-4 flex flex-col">
-    
-    <div class="flex justify-between items-center mb-4 border-b border-white/5 pb-3">
-        <h1 class="text-xl font-black text-orange-500 italic tracking-tighter uppercase">CARMEL POS SYSTEM</h1>
-        <div class="text-right">
-            <span class="text-[10px] text-zinc-500 uppercase block tracking-widest">Revenue Today</span>
-            <span id="daily-money" class="text-xl font-black text-white">0 Birr</span>
+<body class="p-2 md:p-6">
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="glass p-4 rounded-3xl">
+            <p class="text-[10px] uppercase font-bold text-gray-400">Total Sales</p>
+            <h2 class="text-xl font-black text-green-400"><span id="stat-sales">0</span> <small class="text-xs">ETB</small></h2>
+        </div>
+        <div class="glass p-4 rounded-3xl">
+            <p class="text-[10px] uppercase font-bold text-gray-400">Daily Expenses</p>
+            <h2 class="text-xl font-black text-red-400"><span id="stat-exp">0</span> <small class="text-xs">ETB</small></h2>
+        </div>
+        <div class="glass p-4 rounded-3xl text-orange-400">
+            <p class="text-[10px] uppercase font-bold text-gray-400">Net Profit</p>
+            <h2 class="text-xl font-black" id="stat-net">0</h2>
+        </div>
+        <div class="glass p-4 rounded-3xl">
+            <p class="text-[10px] uppercase font-bold text-gray-400">Order Count</p>
+            <h2 class="text-xl font-black" id="stat-count">#0</h2>
         </div>
     </div>
 
-    <div class="grid grid-cols-12 gap-4 flex-grow overflow-hidden">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        <div class="col-span-2 flex flex-col gap-2 overflow-y-auto pr-1">
-            <button onclick="showItems('burger', this)" class="cat-btn active"><span class="text-[10px] uppercase font-black">Burgers</span></button>
-            <button onclick="showItems('Chicken, Wraps & Sandwiches', this)" class="cat-btn"><span class="text-[10px] uppercase font-black">Wraps & Chicken</span></button>
-            <button onclick="showItems('pizza', this)" class="cat-btn"><span class="text-[10px] uppercase font-black">Pizza</span></button>
-            <button onclick="showItems('breakfast', this)" class="cat-btn"><span class="text-[10px] uppercase font-black">Breakfast</span></button>
-            <button onclick="showItems('juice', this)" class="cat-btn"><span class="text-[10px] uppercase font-black">Juices & Shakes</span></button>
-            <button onclick="showItems('coffee&tea', this)" class="cat-btn"><span class="text-[10px] uppercase font-black">Coffee & Tea</span></button>
-            <button onclick="showItems('discount Combos', this)" class="cat-btn"><span class="text-[10px] uppercase font-black">Combos</span></button>
+        <div class="lg:col-span-8 space-y-6">
+            <div class="flex gap-8 border-b border-white/10 px-4">
+                <button onclick="switchTab('pos')" id="btn-pos" class="pb-4 font-black uppercase text-xs tab-active">New Sale (POS)</button>
+                <button onclick="switchTab('incoming')" id="btn-incoming" class="pb-4 font-black uppercase text-xs text-gray-500">Online Orders <span id="online-badge" class="bg-red-500 text-white px-2 py-0.5 rounded-full text-[10px] hidden">0</span></button>
+                <button onclick="switchTab('ledger')" id="btn-ledger" class="pb-4 font-black uppercase text-xs text-gray-500">Expenses/Ledger</button>
+            </div>
+
+            <div id="tab-pos" class="space-y-4">
+                <div class="grid grid-cols-3 md:grid-cols-5 gap-2 overflow-x-auto hide-scroll">
+                    <button onclick="addToCart('Special Burger', 650)" class="glass p-3 rounded-2xl text-[10px] font-bold hover:bg-orange-500">Burger</button>
+                    <button onclick="addToCart('Special Pizza', 690)" class="glass p-3 rounded-2xl text-[10px] font-bold hover:bg-orange-500">Pizza</button>
+                    <button onclick="addToCart('Jebena Coffee', 40)" class="glass p-3 rounded-2xl text-[10px] font-bold hover:bg-orange-500">Coffee</button>
+                    <button onclick="addToCart('Avocado Juice', 180)" class="glass p-3 rounded-2xl text-[10px] font-bold hover:bg-orange-500">Juice</button>
+                </div>
+                <div class="glass rounded-[2rem] p-6">
+                    <h3 class="font-black mb-4">Current Order List</h3>
+                    <div id="pos-cart" class="space-y-2 min-h-[200px]">
+                        </div>
+                    <div class="mt-6 flex justify-between items-center pt-4 border-t border-white/10">
+                        <div>
+                            <p class="text-xs text-gray-400">Total Amount</p>
+                            <h2 class="text-3xl font-black text-orange-500"><span id="pos-total">0</span> <small class="text-sm">ETB</small></h2>
+                        </div>
+                        <button onclick="confirmPOSOrder()" class="bg-orange-500 hover:bg-orange-600 px-8 py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">Send to Kitchen</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-incoming" class="hidden space-y-4">
+                <div id="incoming-list" class="space-y-3">
+                    <p class="text-center text-gray-500 py-10">No pending online orders...</p>
+                </div>
+            </div>
+
+            <div id="tab-ledger" class="hidden space-y-4">
+                <div class="glass p-6 rounded-[2rem] grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="font-black mb-4">Record Daily Purchase</h3>
+                        <div class="space-y-3">
+                            <input id="exp-name" type="text" placeholder="Item (e.g., Charcoal, Meat, Milk)" class="w-full bg-white/5 border border-white/10 p-4 rounded-xl outline-none">
+                            <input id="exp-amt" type="number" placeholder="Amount (ETB)" class="w-full bg-white/5 border border-white/10 p-4 rounded-xl outline-none">
+                            <button onclick="addExpense()" class="w-full bg-red-500/20 text-red-400 p-4 rounded-xl font-black uppercase">Add Expense</button>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="font-black mb-4">Expense History</h3>
+                        <div id="exp-history" class="space-y-2 text-xs">
+                            </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div class="col-span-7 card p-4 overflow-y-auto">
-            <div id="item-display-grid" class="grid grid-cols-4 gap-2">
+        <div class="lg:col-span-4">
+            <div class="glass rounded-[2.5rem] p-6 h-full border-l-4 border-orange-500">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-black uppercase italic">Kitchen Queue</h2>
+                    <span class="bg-orange-500 text-black text-[10px] font-black px-3 py-1 rounded-full">LIVE</span>
                 </div>
-        </div>
-
-        <div class="col-span-3 flex flex-col gap-3">
-            <div class="card flex-grow flex flex-col overflow-hidden border-orange-500/30 bg-orange-500/[0.01]">
-                <div class="p-3 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
-                    <span class="text-[10px] font-black uppercase text-orange-500 tracking-widest">Live Order</span>
-                    <button onclick="clearCart()" class="text-[9px] text-zinc-600 hover:text-white uppercase font-bold">Clear All</button>
-                </div>
-                
-                <div id="cart-items" class="flex-grow overflow-y-auto p-2 space-y-1.5">
+                <div id="kitchen-queue" class="space-y-4">
                     </div>
-
-                <div class="p-4 bg-orange-500 text-black">
-                    <div class="flex justify-between items-end mb-3">
-                        <span class="text-[10px] font-black uppercase opacity-60">Total</span>
-                        <span id="cart-total" class="text-3xl font-black leading-none">0 Birr</span>
-                    </div>
-                    <button onclick="completeOrder()" class="w-full py-4 bg-black text-white font-black rounded-xl uppercase text-xs tracking-widest hover:bg-zinc-900 transition-all">
-                        Complete Order
-                    </button>
-                </div>
             </div>
         </div>
 
     </div>
 
     <script>
-        const _supabase = supabase.createClient("https://csdpoyqbkjljaqknunyv.supabase.co", "sb_publishable_GZ9zqNM1CPfdyaEhLY_pOg_Fs4CSfrC");
-        
-        const carmelMenu = [
-            // BURGERS
-            { c:'burger', n:'House Special Burger', p:650 }, { c:'burger', n:'Fasting Burger', p:390 }, { c:'burger', n:'Classic Beef Burger', p:490 }, { c:'burger', n:'Chessic Beef Burger ★', p:550 }, { c:'burger', n:'Spicy Hot Burger 🔥', p:550 }, { c:'burger', n:'Chicken Double Burger', p:590 }, { c:'burger', n:'Double Beef Burger', p:590 }, { c:'burger', n:'BBQ Juicy Burger', p:590 }, { c:'burger', n:'Mountain Burger (Taple) 🏔️', p:720 }, { c:'burger', n:'VIP Burger 🔥', p:790 }, { c:'burger', n:'2 Pc Special Bite', p:450 }, { c:'burger', n:'3 Pc Special Bite', p:550 }, { c:'burger', n:'5 Pc Special Bite', p:950 }, { c:'burger', n:'Chips 🍟', p:190 },
-            // CHICKEN, WRAPS & SANDWICHES
-            { c:'Chicken, Wraps & Sandwiches', n:'2 Pc Fried Chicken', p:490 }, { c:'Chicken, Wraps & Sandwiches', n:'3 Pc Fried Chicken', p:740 }, { c:'Chicken, Wraps & Sandwiches', n:'5 Pc Fried Chicken', p:1190 }, { c:'Chicken, Wraps & Sandwiches', n:'Beef Wrap', p:490 }, { c:'Chicken, Wraps & Sandwiches', n:'Chicken Wrap', p:490 }, { c:'Chicken, Wraps & Sandwiches', n:'Vegetable Wrap', p:350 }, { c:'Chicken, Wraps & Sandwiches', n:'Egg Sandwich', p:190 }, { c:'Chicken, Wraps & Sandwiches', n:'Vegetable Sandwich', p:290 }, { c:'Chicken, Wraps & Sandwiches', n:'Tuna Sandwich', p:440 },
-            // COMBOS
-            { c:'discount Combos', n:'Kuriftu Combo', p:1290 }, { c:'discount Combos', n:'Kilole Combo 🍹', p:1590 }, { c:'discount Combos', n:'Calalaqa Combo', p:1290 }, { c:'discount Combos', n:'Hora Combo 🍹', p:1990 }, { c:'discount Combos', n:'Babogaya Combo', p:600 }, { c:'discount Combos', n:'Bishe Combo', p:600 },
-            // PIZZA
-            { c:'pizza', n:'Special Pizza (Reg)', p:690 }, { c:'pizza', n:'Special Pizza (Per)', p:490 }, { c:'pizza', n:'Tuna Pizza (Reg)', p:670 }, { c:'pizza', n:'Tuna Pizza (Per)', p:470 }, { c:'pizza', n:'Beef Pizza (Reg)', p:650 }, { c:'pizza', n:'Beef Pizza (Per)', p:450 }, { c:'pizza', n:'Chicken Pizza (Reg)', p:650 }, { c:'pizza', n:'Chicken Pizza (Per)', p:450 }, { c:'pizza', n:'Vegetable Pizza (Reg)', p:550 }, { c:'pizza', n:'Vegetable Pizza (Per)', p:400 }, { c:'pizza', n:'Cheese Pizza (Reg)', p:550 }, { c:'pizza', n:'Cheese Pizza (Per)', p:400 },
-            // BREAKFAST
-            { c:'breakfast', n:'Full Breakfast', p:150 }, { c:'breakfast', n:'Special Full', p:200 }, { c:'breakfast', n:'Chachabesa', p:200 }, { c:'breakfast', n:'Special Chachabesa', p:250 }, { c:'breakfast', n:'Fatria', p:250 }, { c:'breakfast', n:'Special Fatria', p:350 }, { c:'breakfast', n:'Firfir', p:170 }, { c:'breakfast', n:'Tibs Firfir', p:290 }, { c:'breakfast', n:'Egg', p:170 }, { c:'breakfast', n:'Egg with Meat', p:290 }, { c:'breakfast', n:'Pasta', p:190 }, { c:'breakfast', n:'Pasta with Meat', p:290 }, { c:'breakfast', n:'Tibs', p:450 }, { c:'breakfast', n:'Avocado Liblib', p:200 },
-            // JUICE & SHAKES
-            { c:'juice', n:'Avocado 🥑', p:180 }, { c:'juice', n:'Papaya 🥭', p:180 }, { c:'juice', n:'Pineapple 🍍', p:200 }, { c:'juice', n:'Mango 🥭', p:230 }, { c:'juice', n:'Strawberry 🍓', p:230 }, { c:'juice', n:'Mixed Juice 🍹', p:250 }, { c:'juice', n:'Banana Shake 🍌', p:200 }, { c:'juice', n:'Strawberry Shake 🍓', p:250 }, { c:'juice', n:'Mango Shake 🥭', p:250 }, { c:'juice', n:'Avocado+Choc Shake', p:270 }, { c:'juice', n:'Oreo + Choc 🍪', p:290 }, { c:'juice', n:'Chocolate Shake 🍫', p:290 }, { c:'juice', n:'Carmel Special ⭐', p:320 }, { c:'juice', n:'Strawberry Mojito 🍓', p:200 }, { c:'juice', n:'Pineapple Mojito 🍍', p:200 }, { c:'juice', n:'Lemon Mint Mojito 🍋', p:200 },
-            // COFFEE & TEA
-            { c:'coffee&tea', n:'Jebena Coffee ★', p:40 }, { c:'coffee&tea', n:'Machine Coffee ★', p:70 }, { c:'coffee&tea', n:'Macchiato ★', p:70 }, { c:'coffee&tea', n:'Cappuccino', p:100 }, { c:'coffee&tea', n:'Latte', p:100 }, { c:'coffee&tea', n:'Hot Chocolate', p:100 }, { c:'coffee&tea', n:'Milk', p:70 }, { c:'coffee&tea', n:'Black Tea', p:40 }, { c:'coffee&tea', n:'Flavour Tea', p:70 }, { c:'coffee&tea', n:'Qashir Tea', p:70 }, { c:'coffee&tea', n:'Lewz Tea', p:70 }, { c:'coffee&tea', n:'Special Tea', p:100 }, { c:'coffee&tea', n:'Iced Milk', p:100 }, { c:'coffee&tea', n:'Iced Coffee', p:120 }, { c:'coffee&tea', n:'Iced Latte', p:150 }, { c:'coffee&tea', n:'Soft Drink', p:70 }, { c:'coffee&tea', n:'Water', p:35 }, { c:'coffee&tea', n:'Sinq', p:120 }
-        ];
+        let totalSales = 0;
+        let totalExp = 0;
+        let orderCount = 100; // Starting order number
+        let currentCart = [];
+        let expenses = [];
 
-        let cart = [];
-        let totalDailyRevenue = 0;
-
-        function showItems(cat, btn) {
-            document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            const grid = document.getElementById('item-display-grid');
-            grid.innerHTML = '';
-            carmelMenu.filter(i => i.c === cat).forEach(item => {
-                grid.innerHTML += `
-                    <button onclick='addToCart(${JSON.stringify(item)})' class="item-btn font-black uppercase text-white">
-                        <span class="mb-1">${item.n}</span>
-                        <span class="text-orange-500">${item.p}</span>
-                    </button>`;
-            });
-        }
-
-        function addToCart(item) {
-            const found = cart.find(i => i.n === item.n);
-            if(found) { 
-                found.qty++; 
-            } else { 
-                cart.push({...item, qty: 1}); 
-            }
-            renderCart();
-        }
-
-        function removeFromCart(idx) {
-            cart.splice(idx, 1);
+        // 1. POS LOGIC
+        function addToCart(name, price) {
+            currentCart.push({ name, price });
             renderCart();
         }
 
         function renderCart() {
-            const list = document.getElementById('cart-items');
-            list.innerHTML = '';
+            const list = document.getElementById('pos-cart');
             let total = 0;
-            cart.forEach((item, idx) => {
-                const itemTotal = item.p * item.qty;
-                total += itemTotal;
-                list.innerHTML += `
-                    <div class="flex justify-between items-center p-3 bg-white/5 rounded-xl border border-white/5">
-                        <div class="flex flex-col">
-                            <span class="text-[10px] font-black uppercase leading-tight">${item.n}</span>
-                            <span class="text-[9px] text-orange-500 font-bold">${item.qty} x ${item.p} Birr</span>
-                        </div>
-                        <div class="flex items-center gap-4">
-                            <span class="text-xs font-black">${itemTotal}</span>
-                            <button onclick="removeFromCart(${idx})" class="text-zinc-600 hover:text-white font-bold px-1">×</button>
-                        </div>
-                    </div>`;
-            });
-            document.getElementById('cart-total').innerText = total + " Birr";
+            list.innerHTML = currentCart.map((item, i) => {
+                total += item.price;
+                return `<div class="flex justify-between items-center bg-white/5 p-3 rounded-xl">
+                    <span class="text-xs font-bold uppercase">${item.name}</span>
+                    <div class="flex items-center gap-4">
+                        <span class="font-bold text-orange-400">${item.price}</span>
+                        <button onclick="removeFromCart(${i})" class="text-red-500 font-bold">×</button>
+                    </div>
+                </div>`;
+            }).join('');
+            document.getElementById('pos-total').innerText = total;
         }
 
-        function clearCart() { cart = []; renderCart(); }
+        function removeFromCart(i) {
+            currentCart.splice(i, 1);
+            renderCart();
+        }
 
-        async function completeOrder() {
-            if(cart.length === 0) return;
+        // 2. ORDER CONFIRMATION (BOTH POS & ONLINE)
+        function confirmPOSOrder() {
+            if (currentCart.length === 0) return;
+            const total = parseInt(document.getElementById('pos-total').innerText);
+            const itemsList = currentCart.map(i => i.name).join(', ');
             
-            for(const i of cart) {
-                // Upload to Supabase
-                await _supabase.from('orders').insert([{ 
-                    item_name: i.n, 
-                    quantity: i.qty, 
-                    total_price: i.p * i.qty, 
-                    status: 'done' 
-                }]);
-                totalDailyRevenue += (i.p * i.qty);
-            }
-
-            document.getElementById('daily-money').innerText = totalDailyRevenue + " Birr";
-            clearCart();
-            alert("Order Completed & Saved Successfully!");
+            processOrderToKitchen(orderCount++, itemsList, total, "Cashier POS");
+            currentCart = [];
+            renderCart();
         }
 
-        // Initialize with Burgers
-        showItems('burger', document.querySelector('.cat-btn'));
+        function processOrderToKitchen(num, items, money, source) {
+            // Update Money
+            totalSales += money;
+            updateStats();
+
+            // Send to Kitchen Queue
+            const queue = document.getElementById('kitchen-queue');
+            const orderDiv = document.createElement('div');
+            orderDiv.className = "bg-white/5 border border-white/10 p-4 rounded-2xl space-y-2 animate-pulse";
+            orderDiv.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <span class="text-[10px] font-black bg-orange-500 text-black px-2 py-0.5 rounded">#${num}</span>
+                    <span class="text-[10px] text-gray-500">${source}</span>
+                </div>
+                <p class="text-xs font-bold">${items}</p>
+                <button onclick="this.parentElement.remove()" class="w-full mt-2 py-2 bg-green-500/10 text-green-500 rounded-lg text-[10px] font-black uppercase">Complete & Remove</button>
+            `;
+            queue.prepend(orderDiv);
+        }
+
+        // 3. EXPENSE LOGIC
+        function addExpense() {
+            const name = document.getElementById('exp-name').value;
+            const amt = parseInt(document.getElementById('exp-amt').value);
+            if (!name || !amt) return;
+
+            totalExp += amt;
+            expenses.unshift({ name, amt, time: new Date().toLocaleTimeString() });
+            
+            const log = document.getElementById('exp-history');
+            log.innerHTML = expenses.map(e => `
+                <div class="flex justify-between p-2 bg-red-500/5 rounded-lg mb-1 border border-red-500/10">
+                    <span>${e.name}</span>
+                    <span class="font-bold text-red-400">-${e.amt} ETB</span>
+                </div>
+            `).join('');
+            
+            updateStats();
+            document.getElementById('exp-name').value = '';
+            document.getElementById('exp-amt').value = '';
+        }
+
+        function updateStats() {
+            document.getElementById('stat-sales').innerText = totalSales;
+            document.getElementById('stat-exp').innerText = totalExp;
+            document.getElementById('stat-net').innerText = (totalSales - totalExp) + " ETB";
+            document.getElementById('stat-count').innerText = "#" + (orderCount - 100);
+        }
+
+        // UI TAB SWITCHING
+        function switchTab(tab) {
+            ['pos', 'incoming', 'ledger'].forEach(t => document.getElementById('tab-'+t).classList.add('hidden'));
+            ['pos', 'incoming', 'ledger'].forEach(t => document.getElementById('btn-'+t).classList.remove('tab-active'));
+            document.getElementById('tab-'+tab).classList.remove('hidden');
+            document.getElementById('btn-'+tab).classList.add('tab-active');
+        }
     </script>
 </body>
 </html>
