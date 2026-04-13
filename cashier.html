@@ -6,16 +6,14 @@
     <title>Carmel Cashier Terminal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         body { background: #000; color: white; font-family: 'Inter', sans-serif; }
         .card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1.5rem; }
         .input-field { background: #111; border: 1px solid rgba(255, 255, 255, 0.1); padding: 0.75rem; border-radius: 0.75rem; font-size: 0.875rem; width: 100%; color: white; }
-        .suggestion-box { background: #111; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 0.75rem; max-height: 250px; overflow-y: auto; position: absolute; width: 100%; z-index: 100; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .suggestion-box { background: #111; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 0.75rem; max-height: 300px; overflow-y: auto; position: absolute; width: 100%; z-index: 100; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
         .suggestion-item { padding: 0.85rem; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9rem; display: flex; justify-content: space-between; }
         .suggestion-item:hover { background: #f97316; color: black; font-weight: bold; }
-        .btn-confirm { background: #fff; color: #000; font-weight: 900; transition: 0.3s; }
-        .btn-confirm:hover { background: #f97316; color: #fff; }
+        .category-tag { font-size: 10px; background: rgba(249, 115, 22, 0.1); color: #f97316; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
     </style>
 </head>
 <body class="p-4">
@@ -23,76 +21,61 @@
         <header class="flex justify-between items-center mb-8 border-b border-orange-500/20 pb-4">
             <div>
                 <h1 class="text-3xl font-black italic text-orange-500 uppercase">CARMEL CASHIER</h1>
-                <p id="staff-name-display" class="text-[10px] text-zinc-500 font-bold uppercase"></p>
+                <p id="staff-name-display" class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest"></p>
             </div>
-            <div class="flex gap-6 items-center">
-                <div class="text-right">
-                    <p id="daily-count" class="text-xl font-black text-white">0</p>
-                    <p class="text-[9px] text-zinc-500 uppercase font-black">Total Orders</p>
-                </div>
-                <div class="text-right">
-                    <p id="daily-money" class="text-xl font-black text-orange-500">0 Birr</p>
-                    <p class="text-[9px] text-zinc-500 uppercase font-black">Revenue</p>
-                </div>
+            <div class="text-right">
+                <p id="daily-money" class="text-2xl font-black text-orange-500">0 Birr</p>
+                <p class="text-[10px] text-zinc-500 uppercase font-black tracking-tighter">Daily Revenue</p>
             </div>
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
             
             <div class="lg:col-span-1">
-                <h2 class="text-xs font-black uppercase text-white mb-4 ml-2 tracking-widest">Walk-in Order</h2>
-                <div class="card p-6 border-white/10 relative">
+                <h2 class="text-xs font-black uppercase text-white mb-4 ml-2 tracking-widest">Manual Order</h2>
+                <div class="card p-6 border-white/10 relative bg-white/[0.01]">
                     <div class="space-y-4">
                         <div class="relative">
                             <p class="text-[10px] text-zinc-500 mb-1 ml-1 uppercase">Search Full Menu</p>
-                            <input id="menu-search" type="text" placeholder="Type item name..." class="input-field" oninput="searchMenu()" autocomplete="off">
+                            <input id="menu-search" type="text" placeholder="Type name (e.g. 'burger', 'pizza')..." class="input-field" oninput="searchMenu()" autocomplete="off">
                             <div id="suggestions" class="suggestion-box hidden"></div>
                         </div>
                         
                         <div class="grid grid-cols-2 gap-2">
                             <div>
-                                <p class="text-[10px] text-zinc-500 mb-1 ml-1 uppercase">Qty</p>
+                                <p class="text-[10px] text-zinc-500 mb-1 ml-1 uppercase">Quantity</p>
                                 <input id="manual-qty" type="number" value="1" oninput="updateManualTotal()" class="input-field">
                             </div>
                             <div>
                                 <p class="text-[10px] text-zinc-500 mb-1 ml-1 uppercase">Price</p>
-                                <input id="manual-price" type="number" readonly class="input-field opacity-50">
+                                <input id="manual-price" type="number" readonly class="input-field opacity-40">
                             </div>
                         </div>
 
-                        <div id="manual-total-display" class="bg-orange-500/10 p-4 rounded-xl text-center text-xl font-black text-orange-500 border border-orange-500/20">0 Birr</div>
+                        <div id="manual-total-display" class="bg-orange-500/10 p-4 rounded-xl text-center text-2xl font-black text-orange-500 border border-orange-500/20">0 Birr</div>
                         
-                        <button onclick="createManualOrder()" class="w-full bg-orange-500 text-black font-black py-4 rounded-xl uppercase text-xs tracking-widest shadow-lg">Confirm & Send</button>
+                        <button onclick="createManualOrder()" class="w-full bg-orange-500 text-black font-black py-4 rounded-xl uppercase text-xs tracking-widest hover:bg-orange-400 transition-colors">Confirm & Send</button>
                     </div>
                 </div>
             </div>
 
             <div class="lg:col-span-1">
-                <h2 class="text-xs font-black uppercase text-orange-500 mb-4 ml-2 tracking-widest">Incoming Orders</h2>
+                <h2 class="text-xs font-black uppercase text-orange-500 mb-4 ml-2 tracking-widest">Incoming</h2>
                 <div id="order-queue" class="space-y-4"></div>
             </div>
 
-            <div class="lg:col-span-1">
-                <h2 class="text-xs font-black uppercase text-zinc-500 mb-4 ml-2 tracking-widest">Log Expense</h2>
-                <div class="card p-6 border-white/5">
-                    <div class="space-y-3">
-                        <select id="exp-item-select" class="input-field"></select>
-                        <div class="grid grid-cols-3 gap-1">
-                            <input id="exp-qty" type="number" placeholder="Qty" class="input-field">
-                            <select id="exp-unit-select" class="input-field">
-                                <option value="pcs">pcs</option><option value="kg">kg</option><option value="liter">ltr</option>
-                            </select>
-                            <input id="exp-price" type="number" placeholder="Price" class="input-field">
-                        </div>
-                        <button onclick="logPurchase()" class="w-full bg-zinc-800 text-white font-black py-3 rounded-xl uppercase text-[10px]">Save Expense</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="lg:col-span-1">
-                <h2 class="text-xs font-black uppercase text-zinc-500 mb-4 ml-2 tracking-widest">Daily Sales</h2>
+            <div class="lg:col-span-2">
+                <h2 class="text-xs font-black uppercase text-zinc-500 mb-4 ml-2 tracking-widest">Daily Sales List</h2>
                 <div class="card p-4 h-[600px] overflow-y-auto">
                     <table class="w-full text-left text-[11px]">
+                        <thead class="bg-black/50 sticky top-0">
+                            <tr class="text-zinc-500 uppercase">
+                                <th class="pb-3 px-2">Time</th>
+                                <th class="pb-3">Item</th>
+                                <th class="pb-3">Qty</th>
+                                <th class="pb-3 text-right pr-2">Total</th>
+                            </tr>
+                        </thead>
                         <tbody id="sales-table-body" class="divide-y divide-white/5"></tbody>
                     </table>
                 </div>
@@ -103,38 +86,99 @@
     <script>
         const _supabase = supabase.createClient("https://csdpoyqbkjljaqknunyv.supabase.co", "sb_publishable_GZ9zqNM1CPfdyaEhLY_pOg_Fs4CSfrC");
         const staffName = sessionStorage.getItem('staffName') || 'Cashier';
-        document.getElementById('staff-name-display').innerText = `Logged In: ${staffName}`;
+        document.getElementById('staff-name-display').innerText = `Active: ${staffName}`;
 
-        // FULL CARMEL MENU DATA
+        // YOUR FULL MENU DATA LOADED HERE
         const carmelMenu = [
-            // JUICES
-            { name: "Avocado Juice", price: 120 },
-            { name: "Mango Juice", price: 110 },
-            { name: "Papaya Juice", price: 100 },
-            { name: "Pineapple Juice", price: 130 },
-            { name: "Mixed Juice", price: 140 },
-            // MOJITOS
-            { name: "Strawberry Mojito", price: 140 },
-            { name: "Blueberry Mojito", price: 150 },
-            { name: "Passion Fruit Mojito", price: 140 },
-            { name: "Classic Mint Mojito", price: 120 },
-            // SHAKES
-            { name: "Carmel Special Shake", price: 180 },
-            { name: "Chocolate Milkshake", price: 130 },
-            { name: "Vanilla Milkshake", price: 130 },
-            { name: "Oreo Shake", price: 160 },
-            // COFFEE & TEA
-            { name: "Jebena Coffee", price: 35 },
-            { name: "Macchiato", price: 45 },
-            { name: "Cafe Latte", price: 70 },
-            { name: "Cappuccino", price: 80 },
-            { name: "Tea", price: 25 },
-            { name: "Special Tea", price: 40 },
-            // FOOD
-            { name: "House Special Burger", price: 280 },
-            { name: "Chicken Sandwich", price: 220 },
-            { name: "Club Sandwich", price: 250 },
-            { name: "French Fries", price: 90 }
+            { c:'burger', n:'House Special Burger', p:650 },
+            { c:'burger', n:'Fasting Burger', p:390 },
+            { c:'burger', n:'Classic Beef Burger', p:490 },
+            { c:'burger', n:'Chessic Beef Burger ★', p:550 },
+            { c:'burger', n:'Spicy Hot Burger 🔥', p:550 },
+            { c:'burger', n:'Chicken Double Burger', p:590 },
+            { c:'burger', n:'Double Beef Burger', p:590 },
+            { c:'burger', n:'BBQ Juicy Burger', p:590 },
+            { c:'burger', n:'Mountain Burger (Taple) 🏔️', p:720 },
+            { c:'burger', n:'VIP Burger 🔥', p:790 },
+            { c:'burger', n:'2 Pc Special Bite Burger', p:450 },
+            { c:'burger', n:'3 Pc Special Bite Burger', p:550 },
+            { c:'burger', n:'5 Pc Special Bite Burger', p:950 },
+            { c:'burger', n:'Chips 🍟', p:190 },
+            { c:'Chicken, Wraps & Sandwiches', n:'2 Pc Fried Chicken', p:490 },
+            { c:'Chicken, Wraps & Sandwiches', n:'3 Pc Fried Chicken', p:740 },
+            { c:'Chicken, Wraps & Sandwiches', n:'5 Pc Fried Chicken', p:1190 },
+            { c:'Chicken, Wraps & Sandwiches', n:'Beef Wrap', p:490 },
+            { c:'Chicken, Wraps & Sandwiches', n:'Chicken Wrap', p:490 },
+            { c:'Chicken, Wraps & Sandwiches', n:'Vegetable Wrap', p:350 },
+            { c:'Chicken, Wraps & Sandwiches', n:'Egg Sandwich', p:190 },
+            { c:'Chicken, Wraps & Sandwiches', n:'Vegetable Sandwich', p:290 },
+            { c:'Chicken, Wraps & Sandwiches', n:'Tuna Sandwich', p:440 },
+            { c:'discount Combos', n:'Kuriftu Combo (3 Mini + 2 Pizza)', p:1290 },
+            { c:'discount Combos', n:'Kilole Combo (+2 Mojitos) 🍹', p:1590 },
+            { c:'discount Combos', n:'Calalaqa Combo (+2 Fried Chicken)', p:1290 },
+            { c:'discount Combos', n:'Hora Combo (+Chicken +Mojitos) 🍹', p:1990 },
+            { c:'discount Combos', n:'Babogaya Combo (2 Mini + Juice)', p:600 },
+            { c:'discount Combos', n:'Bishe Combo (Pizza + Juice)', p:600 },
+            { c:'pizza', n:'Special Pizza (Regular)', p:690 },
+            { c:'pizza', n:'Special Pizza (Personal)', p:490 },
+            { c:'pizza', n:'Tuna Pizza (Regular)', p:670 },
+            { c:'pizza', n:'Tuna Pizza (Personal)', p:470 },
+            { c:'pizza', n:'Beef Pizza (Regular)', p:650 },
+            { c:'pizza', n:'Beef Pizza (Personal)', p:450 },
+            { c:'pizza', n:'Chicken Pizza (Regular)', p:650 },
+            { c:'pizza', n:'Chicken Pizza (Personal)', p:450 },
+            { c:'pizza', n:'Vegetable Pizza (Regular)', p:550 },
+            { c:'pizza', n:'Vegetable Pizza (Personal)', p:400 },
+            { c:'pizza', n:'Cheese Pizza (Regular)', p:550 },
+            { c:'pizza', n:'Cheese Pizza (Personal)', p:400 },
+            { c:'breakfast', n:'Full Breakfast', p:150 },
+            { c:'breakfast', n:'Special Full Breakfast', p:200 },
+            { c:'breakfast', n:'Chachabesa', p:200 },
+            { c:'breakfast', n:'Special Chachabesa', p:250 },
+            { c:'breakfast', n:'Fatria', p:250 },
+            { c:'breakfast', n:'Special Fatria', p:350 },
+            { c:'breakfast', n:'Firfir', p:170 },
+            { c:'breakfast', n:'Tibs Firfir', p:290 },
+            { c:'breakfast', n:'Egg', p:170 },
+            { c:'breakfast', n:'Egg with Meat', p:290 },
+            { c:'breakfast', n:'Pasta', p:190 },
+            { c:'breakfast', n:'Pasta with Meat', p:290 },
+            { c:'breakfast', n:'Tibs', p:450 },
+            { c:'breakfast', n:'Avocado Liblib', p:200 },
+            { c:'juice', n:'Avocado 🥑', p:180 },
+            { c:'juice', n:'Papaya 🥭', p:180 },
+            { c:'juice', n:'Pineapple 🍍', p:200 },
+            { c:'juice', n:'Mango 🥭', p:230 },
+            { c:'juice', n:'Strawberry 🍓', p:230 },
+            { c:'juice', n:'Mixed Juice 🍹', p:250 },
+            { c:'juice', n:'Banana Milkshake 🍌', p:200 },
+            { c:'juice', n:'Strawberry Shake 🍓', p:250 },
+            { c:'juice', n:'Mango Shake 🥭', p:250 },
+            { c:'juice', n:'Avocado + Chocolate Shake', p:270 },
+            { c:'juice', n:'Oreo + Chocolate 🍪', p:290 },
+            { c:'juice', n:'Chocolate Shake 🍫', p:290 },
+            { c:'juice', n:'Carmel Special Shake ⭐', p:320 },
+            { c:'juice', n:'Strawberry Mojito 🍓', p:200 },
+            { c:'juice', n:'Pineapple Mojito 🍍', p:200 },
+            { c:'juice', n:'Lemon Mint Mojito 🍋', p:200 },
+            { c:'coffee&tea', n:'Jebena Coffee ★', p:40 },
+            { c:'coffee&tea', n:'Machine Coffee ★', p:70 },
+            { c:'coffee&tea', n:'Macchiato ★', p:70 },
+            { c:'coffee&tea', n:'Cappuccino', p:100 },
+            { c:'coffee&tea', n:'Latte', p:100 },
+            { c:'coffee&tea', n:'Hot Chocolate', p:100 },
+            { c:'coffee&tea', n:'Milk', p:70 },
+            { c:'coffee&tea', n:'Black Tea', p:40 },
+            { c:'coffee&tea', n:'Flavour Tea', p:70 },
+            { c:'coffee&tea', n:'Qashir Tea', p:70 },
+            { c:'coffee&tea', n:'Lewz Tea', p:70 },
+            { c:'coffee&tea', n:'Special Tea', p:100 },
+            { c:'coffee&tea', n:'Iced Milk', p:100 },
+            { c:'coffee&tea', n:'Iced Coffee', p:120 },
+            { c:'coffee&tea', n:'Iced Latte', p:150 },
+            { c:'coffee&tea', n:'Soft Drink', p:70 },
+            { c:'coffee&tea', n:'Water', p:35 },
+            { c:'coffee&tea', n:'Sinq', p:120 }
         ];
 
         let selectedItem = null;
@@ -146,12 +190,14 @@
             suggestionBox.innerHTML = '';
             if (query.length < 1) { suggestionBox.classList.add('hidden'); return; }
 
-            const matches = carmelMenu.filter(item => item.name.toLowerCase().includes(query));
+            const matches = carmelMenu.filter(item => item.n.toLowerCase().includes(query));
             if (matches.length > 0) {
                 matches.forEach(item => {
                     const div = document.createElement('div');
                     div.className = 'suggestion-item';
-                    div.innerHTML = `<span>${item.name}</span> <span class="text-orange-500 font-bold">${item.price} ETB</span>`;
+                    div.innerHTML = `
+                        <div><span class="category-tag mr-2">${item.c}</span> ${item.n}</div> 
+                        <span class="text-orange-500 font-bold">${item.p} Birr</span>`;
                     div.onclick = () => selectItem(item);
                     suggestionBox.appendChild(div);
                 });
@@ -161,8 +207,8 @@
 
         function selectItem(item) {
             selectedItem = item;
-            document.getElementById('menu-search').value = item.name;
-            document.getElementById('manual-price').value = item.price;
+            document.getElementById('menu-search').value = item.n;
+            document.getElementById('manual-price').value = item.p;
             document.getElementById('suggestions').classList.add('hidden');
             updateManualTotal();
         }
@@ -176,23 +222,22 @@
         async function createManualOrder() {
             if(!selectedItem) return alert("Select an item first");
             const qty = parseInt(document.getElementById('manual-qty').value);
-            const total = qty * selectedItem.price;
-            const { error } = await _supabase.from('orders').insert([{ item_name: selectedItem.name, quantity: qty, total_price: total, status: 'done' }]);
+            const total = qty * selectedItem.p;
+            
+            const { error } = await _supabase.from('orders').insert([{ 
+                item_name: selectedItem.n, quantity: qty, total_price: total, status: 'done' 
+            }]);
+
             if(!error) {
-                dailySales.push({ time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}), item: selectedItem.name, qty, price: total });
+                dailySales.push({ 
+                    time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}), 
+                    item: selectedItem.n, qty, price: total 
+                });
                 updateUI();
                 document.getElementById('menu-search').value = "";
+                document.getElementById('manual-price').value = "";
                 selectedItem = null;
                 updateManualTotal();
-            }
-        }
-
-        async function confirmOrder(id, item, qty, price) {
-            const { error } = await _supabase.from('orders').update({ status: 'done' }).eq('id', id);
-            if(!error) {
-                dailySales.push({ time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}), item, qty, price });
-                updateUI();
-                fetchOrders();
             }
         }
 
@@ -203,11 +248,25 @@
             if (data) data.forEach(order => {
                 queue.innerHTML += `
                     <div class="card p-4 border-orange-500/20">
-                        <p class="font-black uppercase">${order.item_name}</p>
-                        <p class="text-xs text-orange-500">${order.quantity} pcs — ${order.total_price} Birr</p>
-                        <button onclick="confirmOrder('${order.id}', '${order.item_name}', ${order.quantity}, ${order.total_price})" class="w-full mt-3 btn-confirm py-2 rounded-lg uppercase text-[10px]">Confirm Order</button>
+                        <p class="font-black uppercase text-sm">${order.item_name}</p>
+                        <div class="flex justify-between items-center mt-2">
+                            <p class="text-[11px] text-orange-500">${order.quantity} pcs — ${order.total_price} Birr</p>
+                            <button onclick="confirmOrder('${order.id}', '${order.item_name}', ${order.quantity}, ${order.total_price})" class="bg-white text-black font-black px-4 py-1.5 rounded-lg uppercase text-[9px] hover:bg-orange-500 hover:text-white transition-all">Confirm</button>
+                        </div>
                     </div>`;
             });
+        }
+
+        async function confirmOrder(id, item, qty, price) {
+            const { error } = await _supabase.from('orders').update({ status: 'done' }).eq('id', id);
+            if(!error) {
+                dailySales.push({ 
+                    time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}), 
+                    item, qty, price 
+                });
+                updateUI();
+                fetchOrders();
+            }
         }
 
         function updateUI() {
@@ -216,32 +275,19 @@
             let totalMoney = 0;
             dailySales.forEach(s => {
                 totalMoney += s.price;
-                table.innerHTML = `<tr><td class="py-3 font-bold uppercase">${s.item}</td><td>${s.qty}</td><td class="text-orange-500 font-black text-right">${s.price}</td></tr>` + table.innerHTML;
+                table.innerHTML = `
+                    <tr class="hover:bg-white/[0.02] transition-all">
+                        <td class="py-4 px-2 text-zinc-600 font-mono">${s.time}</td>
+                        <td class="py-4 font-bold uppercase">${s.item}</td>
+                        <td class="py-4">${s.qty}</td>
+                        <td class="py-4 text-orange-500 font-black text-right pr-2">${s.price}</td>
+                    </tr>` + table.innerHTML;
             });
-            document.getElementById('daily-count').innerText = dailySales.length;
             document.getElementById('daily-money').innerText = `${totalMoney} Birr`;
             localStorage.setItem('carmel_sales_list', JSON.stringify(dailySales));
         }
 
-        async function loadInventory() {
-            const { data } = await _supabase.from('inventory').select('item_name');
-            const select = document.getElementById('exp-item-select');
-            select.innerHTML = '<option value="">-- Stock Item --</option>';
-            if(data) data.forEach(i => select.innerHTML += `<option value="${i.item_name}">${i.item_name}</option>`);
-        }
-
-        async function logPurchase() {
-            const item = document.getElementById('exp-item-select').value;
-            const qty = parseFloat(document.getElementById('exp-qty').value);
-            const unit = document.getElementById('exp-unit-select').value;
-            const price = parseFloat(document.getElementById('exp-price').value);
-            if(!item || !qty || !price) return;
-            const { error } = await _supabase.from('expenses').insert([{ item_name: item, amount_spent: qty * price, quantity_bought: qty, unit: unit, bought_by: staffName }]);
-            if(!error) location.reload();
-        }
-
         updateUI();
-        loadInventory();
         fetchOrders();
         setInterval(fetchOrders, 5000);
     </script>
