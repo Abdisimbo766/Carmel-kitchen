@@ -23,19 +23,19 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="card p-6 border-white/5">
-                <h2 class="text-orange-500 font-black mb-4 uppercase text-xs italic">Customer Order</h2>
+                <h2 class="text-orange-500 font-black mb-4 uppercase text-xs italic">Order</h2>
                 <div class="space-y-4">
                     <input id="item-search" type="text" placeholder="Menu Item Name" class="input-field">
                     <input id="order-qty" type="number" value="1" class="input-field">
-                    <button onclick="placeOrder()" class="w-full bg-white text-black font-black py-4 rounded-xl uppercase text-xs">Submit Order</button>
+                    <button onclick="placeOrder()" class="w-full bg-white text-black font-black py-4 rounded-xl uppercase text-xs hover:bg-orange-500 transition-all">Submit Order</button>
                 </div>
             </div>
 
-            <div class="card p-6 border-orange-500/10">
+            <div class="card p-6 border-orange-500/10 shadow-[0_0_20px_rgba(249,115,22,0.05)]">
                 <h2 class="text-orange-500 font-black mb-4 uppercase text-xs italic">Log Expense</h2>
                 <div class="space-y-4">
                     <select id="exp-item-select" class="input-field" onchange="toggleOtherBox()">
-                        <option value="">Loading...</option>
+                        <option value="">Loading Inventory...</option>
                     </select>
 
                     <div id="other-note-container" class="hidden">
@@ -51,7 +51,7 @@
                         0 Birr
                     </div>
 
-                    <button onclick="logPurchase()" class="w-full bg-orange-500 text-black font-black py-4 rounded-xl uppercase text-xs">Submit</button>
+                    <button onclick="logPurchase()" class="w-full bg-orange-500 text-black font-black py-4 rounded-xl uppercase text-xs hover:bg-orange-400 transition-all">Submit & Update</button>
                 </div>
             </div>
         </div>
@@ -72,7 +72,13 @@
 
         function toggleOtherBox() {
             const val = document.getElementById('exp-item-select').value;
-            document.getElementById('other-note-container').classList.toggle('hidden', val !== "Other (Non-Stock)");
+            const noteBox = document.getElementById('other-note-container');
+            if(val === "Other (Non-Stock)") {
+                noteBox.classList.remove('hidden');
+            } else {
+                noteBox.classList.add('hidden');
+                document.getElementById('exp-note').value = ''; // clear if switched back
+            }
         }
 
         function calcTotal() {
@@ -85,32 +91,50 @@
 
         async function logPurchase() {
             const item = document.getElementById('exp-item-select').value;
-            const note = document.getElementById('exp-note').value;
+            const note = document.getElementById('exp-note').value; // Get the note!
             const qty = parseFloat(document.getElementById('exp-qty').value);
             const price = parseFloat(document.getElementById('exp-unit-price').value);
             const total = qty * price;
 
-            if(!item || !qty || !price) return alert("Fill all fields");
+            if(!item || !qty || !price) return alert("Please fill all fields!");
 
+            // 1. SEND TO DATABASE (Now includes 'description')
             const { error } = await _supabase.from('expenses').insert([{ 
-                item_name: item, description: item === "Other (Non-Stock)" ? note : "", 
-                amount_spent: total, quantity_bought: qty, bought_by: staffName 
+                item_name: item, 
+                description: note, // We send whatever is in the note box
+                amount_spent: total, 
+                quantity_bought: qty, 
+                bought_by: staffName 
             }]);
 
-            if (item !== "Other (Non-Stock)") {
-                const { data: inv } = await _supabase.from('inventory').select('quantity').eq('item_name', item).single();
-                if(inv) await _supabase.from('inventory').update({ quantity: inv.quantity + qty }).eq('item_name', item);
+            if (error) {
+                console.error(error);
+                return alert("Error saving expense: " + error.message);
             }
 
-            alert("Saved!");
-            location.reload();
+            // 2. UPDATE INVENTORY (Only if it's not "Other")
+            if (item !== "Other (Non-Stock)") {
+                const { data: inv } = await _supabase.from('inventory').select('quantity').eq('item_name', item).single();
+                if(inv) {
+                    await _supabase.from('inventory').update({ quantity: inv.quantity + qty }).eq('item_name', item);
+                }
+            }
+
+            alert("Logged Successfully!");
+            // Reset fields
+            document.getElementById('exp-qty').value = '';
+            document.getElementById('exp-unit-price').value = '';
+            document.getElementById('exp-note').value = '';
+            document.getElementById('total-display').innerText = '0 Birr';
         }
 
         async function placeOrder() {
             const menuName = document.getElementById('item-search').value;
             const qty = parseInt(document.getElementById('order-qty').value);
             const { data: recipes } = await _supabase.from('recipes').select('*').eq('menu_item_name', menuName);
-            if(!recipes) return alert("Menu Item Not Found!");
+            
+            if(!recipes || recipes.length === 0) return alert("Menu Item Not Found!");
+            
             for (let r of recipes) {
                 const { data: inv } = await _supabase.from('inventory').select('quantity').eq('item_name', r.inventory_item_name).single();
                 if(inv) await _supabase.from('inventory').update({ quantity: inv.quantity - (r.amount_used * qty) }).eq('item_name', r.inventory_item_name);
