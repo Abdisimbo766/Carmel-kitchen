@@ -12,6 +12,10 @@
         .status-badge { padding: 4px 8px; border-radius: 6px; font-size: 8px; font-weight: 900; text-transform: uppercase; }
         .filter-btn { font-size: 10px; font-weight: 900; padding: 4px 16px; border-radius: 9999px; border: 1px solid rgba(249, 115, 22, 0.2); transition: all 0.3s; }
         .filter-active { background: #f97316; color: black; border-color: #f97316; }
+        /* Scrollbar styling for a clean look */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
     </style>
 </head>
 <body class="p-6">
@@ -50,9 +54,9 @@
                 </div>
                 
                 <div>
-                    <h2 class="text-xs font-black uppercase text-red-500/50 mb-4 ml-2">Recent Record</h2>
-                    <div class="card p-6">
-                        <div id="expense-list" class="space-y-4"></div>
+                    <h2 class="text-xs font-black uppercase text-red-500/50 mb-4 ml-2 tracking-widest">Recent Records</h2>
+                    <div class="card p-6 border-white/5">
+                        <div id="expense-list" class="space-y-5"></div>
                     </div>
                 </div>
             </div>
@@ -82,7 +86,6 @@
 
         function setTimeFilter(days) {
             daysFilter = days;
-            // Update UI buttons
             [1, 7, 30].forEach(d => {
                 const btn = document.getElementById(`btn-${d}`);
                 if(d === days) {
@@ -93,14 +96,12 @@
                     btn.classList.add('text-orange-500');
                 }
             });
-            // Update Labels
             const labelMap = { 1: "Today's Sales", 7: "Last 7 Days", 30: "Last 30 Days" };
             document.getElementById('sales-label').innerText = labelMap[days];
             refreshData();
         }
 
         async function refreshData() {
-            // Get date for filtering
             const filterDate = new Date();
             filterDate.setDate(filterDate.getDate() - (daysFilter - 1));
             filterDate.setHours(0,0,0,0);
@@ -127,19 +128,27 @@
             // 3. Profit Math
             document.getElementById('net-profit').innerText = `${totalSales - totalExp} Birr`;
 
-            // 4. Render Expenses (Last 5)
+            // 4. THE UPDATED EXPENSE LIST (With Notes/Description)
             const expDiv = document.getElementById('expense-list');
             expDiv.innerHTML = '';
-            if(expData) expData.slice(0, 5).forEach(e => {
-                expDiv.innerHTML += `
-                    <div class="flex justify-between items-center border-b border-white/5 pb-2">
-                        <div>
-                            <p class="font-bold text-white text-sm">${e.item_name}</p>
-                            <p class="text-[9px] text-zinc-500 uppercase font-black">${e.bought_by}</p>
-                        </div>
-                        <p class="text-red-400 font-bold text-sm">-${e.amount_spent}</p>
-                    </div>`;
-            });
+            if(expData && expData.length > 0) {
+                expData.slice(0, 8).forEach(e => {
+                    expDiv.innerHTML += `
+                        <div class="flex justify-between items-start border-b border-white/5 pb-3">
+                            <div class="pr-2">
+                                <p class="font-bold text-white text-[13px] leading-tight">${e.item_name}</p>
+                                ${e.description ? `<p class="text-[10px] text-orange-400 italic font-medium mt-1">"${e.description}"</p>` : ''}
+                                <p class="text-[8px] text-zinc-500 uppercase mt-1 font-bold">${e.bought_by}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-red-400 font-black text-sm">-${e.amount_spent}</p>
+                                <p class="text-[8px] text-zinc-600">Birr</p>
+                            </div>
+                        </div>`;
+                });
+            } else {
+                expDiv.innerHTML = '<p class="text-[10px] text-zinc-600 text-center uppercase py-4">No records found</p>';
+            }
 
             // 5. Render Staff
             const { data: stf } = await _supabase.from('staff').select('*');
@@ -152,7 +161,7 @@
                             <p class="text-[9px] text-orange-500 uppercase font-black">${s.role}</p>
                             <p class="font-bold text-sm">${s.full_name}</p>
                         </div>
-                        <button onclick="delStaff('${s.id}')" class="text-red-500 text-[10px] font-black hover:bg-red-500/10 p-2 rounded-lg">RESET</button>
+                        <button onclick="delStaff('${s.id}')" class="text-red-500 text-[10px] font-black hover:bg-red-500/10 p-2 rounded-lg transition-all">RESET</button>
                     </div>`;
             });
 
@@ -165,7 +174,7 @@
                 stkTable.innerHTML += `
                     <tr class="border-b border-white/5 hover:bg-white/5 transition-all">
                         <td class="py-4 font-bold text-zinc-200">${i.item_name}</td>
-                        <td class="py-4 ${low ? 'text-red-500' : 'text-white'} font-medium">${i.quantity} ${i.unit}</td>
+                        <td class="py-4 ${low ? 'text-red-500 font-black' : 'text-white'}">${i.quantity} ${i.unit}</td>
                         <td class="py-4">
                             <span class="${low ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'} status-badge">
                                 ${low ? 'Low' : 'Ok'}
