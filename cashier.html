@@ -3,86 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carmel Cashier Terminal</title>
+    <title>Carmel Multi-Order Terminal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { background: #000; color: white; font-family: 'Inter', sans-serif; height: 100vh; overflow: hidden; }
-        .card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; }
-        .input-field { background: #111; border: 1px solid rgba(255, 255, 255, 0.1); padding: 0.75rem; border-radius: 0.75rem; color: white; width: 100%; }
-        .suggestion-box { background: #111; border: 1px solid #f97316; border-radius: 0.75rem; max-height: 200px; overflow-y: auto; position: absolute; width: 100%; z-index: 100; }
-        .suggestion-item { padding: 0.85rem; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; font-size: 13px; }
-        .suggestion-item:hover { background: #f97316; color: black; }
-        
-        /* Quick Grid Styles */
-        .item-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; max-height: 500px; overflow-y: auto; }
-        .quick-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 12px 8px; border-radius: 12px; text-align: center; transition: 0.2s; }
-        .quick-btn:hover { background: #f97316; color: black; transform: translateY(-2px); }
-        .cat-btn { padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 800; text-transform: uppercase; border: 1px solid rgba(255,255,255,0.2); }
-        .cat-active { background: #f97316; color: black; border-color: #f97316; }
+        .card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 1rem; }
+        .item-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+        .quick-btn { background: #111; border: 1px solid rgba(255,255,255,0.1); padding: 15px 10px; border-radius: 12px; transition: 0.2s; text-align: left; }
+        .quick-btn:hover { border-color: #f97316; background: #1a1a1a; }
+        .cart-item { background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .cat-btn { padding: 8px 16px; border-radius: 20px; font-size: 11px; font-weight: 800; text-transform: uppercase; border: 1px solid rgba(255,255,255,0.1); background: #000; }
+        .cat-active { background: #f97316; color: #000; border-color: #f97316; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
     </style>
 </head>
-<body class="p-4">
+<body class="p-6">
     <div class="max-w-[1800px] mx-auto h-full flex flex-col">
-        <header class="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
-            <h1 class="text-2xl font-black italic text-orange-500">CARMEL POS</h1>
+        
+        <header class="flex justify-between items-end mb-6">
+            <div>
+                <h1 class="text-3xl font-black text-orange-500 italic uppercase">CARMEL POS</h1>
+                <p class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Multi-Item Mode Enabled</p>
+            </div>
             <div class="text-right">
-                <p id="daily-money" class="text-2xl font-black text-white">0 Birr</p>
-                <p class="text-[9px] text-orange-500 uppercase font-black">Today's Revenue</p>
+                <p id="daily-money" class="text-3xl font-black">0 Birr</p>
+                <p class="text-[10px] text-orange-500 font-black uppercase">Total Daily Revenue</p>
             </div>
         </header>
 
         <div class="grid grid-cols-12 gap-6 flex-grow overflow-hidden">
             
-            <div class="col-span-12 lg:col-span-5 flex flex-col gap-4">
-                <div class="flex gap-2 overflow-x-auto pb-2" id="category-bar">
-                    <button onclick="filterMenu('all')" class="cat-btn cat-active" id="btn-all">All</button>
-                    <button onclick="filterMenu('burger')" class="cat-btn">Burgers</button>
+            <div class="col-span-5 flex flex-col">
+                <div class="flex gap-2 mb-4 overflow-x-auto pb-2" id="category-bar">
+                    <button onclick="filterMenu('burger')" class="cat-btn cat-active">Burgers</button>
                     <button onclick="filterMenu('pizza')" class="cat-btn">Pizza</button>
                     <button onclick="filterMenu('juice')" class="cat-btn">Juice</button>
                     <button onclick="filterMenu('coffee&tea')" class="cat-btn">Coffee</button>
                 </div>
                 
-                <div class="card p-4 flex-grow bg-white/[0.01] border-white/10">
-                    <div id="quick-item-grid" class="item-grid">
-                        </div>
+                <div class="card p-4 flex-grow overflow-y-auto">
+                    <div id="quick-item-grid" class="item-grid"></div>
                 </div>
             </div>
 
-            <div class="col-span-12 lg:col-span-3 flex flex-col gap-4">
-                <div class="card p-6 border-orange-500/30 bg-orange-500/[0.02]">
-                    <h2 class="text-xs font-black uppercase mb-4 text-orange-500">Selected Item</h2>
-                    <div class="space-y-4">
-                        <div class="relative">
-                            <input id="menu-search" type="text" placeholder="Search menu..." class="input-field" oninput="searchMenu()" autocomplete="off">
-                            <div id="suggestions" class="suggestion-box hidden"></div>
+            <div class="col-span-4 flex flex-col">
+                <div class="card flex-grow flex flex-col bg-white/[0.02] border-orange-500/20">
+                    <div class="p-4 border-b border-white/10 flex justify-between items-center">
+                        <h2 class="font-black text-sm uppercase text-orange-500">Current Order</h2>
+                        <button onclick="clearCart()" class="text-[10px] text-zinc-500 hover:text-red-500 uppercase">Clear All</button>
+                    </div>
+                    
+                    <div id="cart-list" class="flex-grow overflow-y-auto p-2 space-y-2">
                         </div>
-                        <div class="flex gap-2">
-                            <div class="w-1/3">
-                                <label class="text-[9px] text-zinc-500 uppercase ml-1">Qty</label>
-                                <input id="manual-qty" type="number" value="1" oninput="updateTotal()" class="input-field text-center text-xl">
-                            </div>
-                            <div class="w-2/3">
-                                <label class="text-[9px] text-zinc-500 uppercase ml-1">Total Birr</label>
-                                <div id="total-display" class="bg-orange-500 text-black h-[50px] flex items-center justify-center rounded-xl text-xl font-black">0</div>
-                            </div>
+
+                    <div class="p-6 bg-orange-500/10 rounded-b-xl border-t border-orange-500/20">
+                        <div class="flex justify-between items-center mb-4">
+                            <span class="font-bold text-zinc-400">Total Amount</span>
+                            <span id="cart-total" class="text-3xl font-black text-orange-500">0 Birr</span>
                         </div>
-                        <button onclick="sendOrder()" class="w-full bg-white text-black font-black py-4 rounded-xl uppercase hover:bg-orange-500 transition-all">Place Order</button>
+                        <button onclick="checkoutOrder()" class="w-full bg-orange-500 text-black font-black py-5 rounded-xl uppercase text-sm shadow-lg shadow-orange-500/20 hover:bg-orange-400 transition-all">
+                            Complete & Save Order
+                        </button>
                     </div>
                 </div>
-
-                <div class="card p-4 flex-grow border-white/5">
-                    <h2 class="text-xs font-black uppercase mb-4 text-zinc-500">Pending From Customer</h2>
-                    <div id="order-queue" class="space-y-2 overflow-y-auto max-h-[300px]"></div>
-                </div>
             </div>
 
-            <div class="col-span-12 lg:col-span-4 flex flex-col">
-                <h2 class="text-xs font-black uppercase mb-4 text-zinc-500 ml-2">Recent Sales</h2>
-                <div class="card p-4 flex-grow overflow-y-auto border-white/5 bg-white/[0.01]">
-                    <table class="w-full text-[11px]">
-                        <tbody id="sales-table" class="divide-y divide-white/5"></tbody>
-                    </table>
+            <div class="col-span-3 flex flex-col">
+                <h2 class="text-[10px] font-black uppercase text-zinc-500 mb-4 ml-2">Today's Sales History</h2>
+                <div class="card p-4 flex-grow overflow-y-auto bg-black border-white/5">
+                    <div id="history-list" class="space-y-3"></div>
                 </div>
             </div>
         </div>
@@ -93,132 +84,123 @@
         
         const carmelMenu = [
             { c:'burger', n:'House Special Burger', p:650 },
-            { c:'burger', n:'Fasting Burger', p:390 },
             { c:'burger', n:'Classic Beef Burger', p:490 },
-            { c:'burger', n:'Chessic Beef Burger ★', p:550 },
             { c:'burger', n:'Spicy Hot Burger 🔥', p:550 },
-            { c:'burger', n:'Chicken Double Burger', p:590 },
-            { c:'burger', n:'Double Beef Burger', p:590 },
-            { c:'burger', n:'BBQ Juicy Burger', p:590 },
-            { c:'burger', n:'Mountain Burger 🏔️', p:720 },
             { c:'burger', n:'VIP Burger 🔥', p:790 },
-            { c:'burger', n:'Chips 🍟', p:190 },
             { c:'pizza', n:'Special Pizza (Reg)', p:690 },
-            { c:'pizza', n:'Special Pizza (Per)', p:490 },
-            { c:'pizza', n:'Tuna Pizza (Reg)', p:670 },
-            { c:'pizza', n:'Beef Pizza (Reg)', p:650 },
             { c:'pizza', n:'Chicken Pizza (Reg)', p:650 },
             { c:'juice', n:'Avocado 🥑', p:180 },
-            { c:'juice', n:'Mango 🥭', p:230 },
-            { c:'juice', n:'Strawberry 🍓', p:230 },
             { c:'juice', n:'Mixed Juice 🍹', p:250 },
             { c:'juice', n:'Carmel Special Shake ⭐', p:320 },
             { c:'coffee&tea', n:'Jebena Coffee ★', p:40 },
-            { c:'coffee&tea', n:'Macchiato ★', p:70 },
-            { c:'coffee&tea', n:'Latte', p:100 },
-            { c:'coffee&tea', n:'Cappuccino', p:100 },
-            { c:'coffee&tea', n:'Water', p:35 }
+            { c:'coffee&tea', n:'Macchiato ★', p:70 }
         ];
 
-        let currentOrder = null;
-        let dailySales = JSON.parse(localStorage.getItem('carmel_sales')) || [];
-
-        function renderQuickMenu(filter = 'all') {
-            const grid = document.getElementById('quick-item-grid');
-            grid.innerHTML = '';
-            const items = filter === 'all' ? carmelMenu : carmelMenu.filter(i => i.c === filter);
-            items.forEach(item => {
-                grid.innerHTML += `
-                    <button onclick='selectItem(${JSON.stringify(item)})' class="quick-btn">
-                        <p class="text-[10px] font-bold uppercase leading-tight">${item.n}</p>
-                        <p class="text-orange-500 font-black mt-1 text-xs">${item.p}</p>
-                    </button>`;
-            });
-        }
-
-        function selectItem(item) {
-            currentOrder = item;
-            document.getElementById('menu-search').value = item.n;
-            updateTotal();
-        }
-
-        function searchMenu() {
-            const q = document.getElementById('menu-search').value.toLowerCase();
-            const box = document.getElementById('suggestions');
-            box.innerHTML = '';
-            if(q.length < 1) { box.classList.add('hidden'); return; }
-            const matches = carmelMenu.filter(i => i.n.toLowerCase().includes(q));
-            matches.forEach(i => {
-                const d = document.createElement('div');
-                d.className = 'suggestion-item';
-                d.innerHTML = `<span>${i.n}</span><b>${i.p}</b>`;
-                d.onclick = () => { selectItem(i); box.classList.add('hidden'); };
-                box.appendChild(d);
-            });
-            box.classList.remove('hidden');
-        }
-
-        function updateTotal() {
-            if(!currentOrder) return;
-            const qty = document.getElementById('manual-qty').value;
-            document.getElementById('total-display').innerText = currentOrder.p * qty;
-        }
-
-        async function sendOrder() {
-            if(!currentOrder) return;
-            const qty = document.getElementById('manual-qty').value;
-            const total = currentOrder.p * qty;
-            const { error } = await _supabase.from('orders').insert([{ item_name: currentOrder.n, quantity: qty, total_price: total, status: 'done' }]);
-            if(!error) {
-                dailySales.unshift({ time: new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}), name: currentOrder.n, total });
-                saveAndRefresh();
-                currentOrder = null;
-                document.getElementById('menu-search').value = '';
-                document.getElementById('total-display').innerText = '0';
-            }
-        }
-
-        function saveAndRefresh() {
-            localStorage.setItem('carmel_sales', JSON.stringify(dailySales));
-            const table = document.getElementById('sales-table');
-            table.innerHTML = '';
-            let totalRev = 0;
-            dailySales.forEach(s => {
-                totalRev += s.total;
-                table.innerHTML += `<tr><td class="py-2 text-zinc-600">${s.time}</td><td class="font-bold uppercase">${s.name}</td><td class="text-right text-orange-500 font-black">${s.total}</td></tr>`;
-            });
-            document.getElementById('daily-money').innerText = totalRev + " Birr";
-        }
+        let cart = [];
+        let dailySales = JSON.parse(localStorage.getItem('carmel_sales_history')) || [];
 
         function filterMenu(cat) {
             document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('cat-active'));
             event.target.classList.add('cat-active');
-            renderQuickMenu(cat);
-        }
-
-        async function fetchCustomerOrders() {
-            const { data } = await _supabase.from('orders').select('*').eq('status', 'pending');
-            const q = document.getElementById('order-queue');
-            q.innerHTML = '';
-            if(data) data.forEach(o => {
-                q.innerHTML += `
-                    <div class="p-3 bg-white/5 rounded-lg flex justify-between items-center border-l-2 border-orange-500">
-                        <span class="text-[11px] font-bold uppercase">${o.item_name}</span>
-                        <button onclick="confirmFromCustomer(${o.id}, '${o.item_name}', ${o.total_price})" class="text-[9px] bg-white text-black px-3 py-1 rounded font-black">DONE</button>
-                    </div>`;
+            const grid = document.getElementById('quick-item-grid');
+            grid.innerHTML = '';
+            carmelMenu.filter(i => i.c === cat).forEach(item => {
+                grid.innerHTML += `
+                    <button onclick='addToCart(${JSON.stringify(item)})' class="quick-btn">
+                        <p class="text-[11px] font-bold uppercase leading-tight h-8">${item.n}</p>
+                        <p class="text-orange-500 font-black mt-2">${item.p} Birr</p>
+                    </button>`;
             });
         }
 
-        async function confirmFromCustomer(id, name, total) {
-            await _supabase.from('orders').update({ status: 'done' }).eq('id', id);
-            dailySales.unshift({ time: new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}), name, total });
-            saveAndRefresh();
-            fetchCustomerOrders();
+        function addToCart(item) {
+            const existing = cart.find(i => i.n === item.n);
+            if(existing) {
+                existing.qty += 1;
+            } else {
+                cart.push({...item, qty: 1});
+            }
+            renderCart();
         }
 
-        renderQuickMenu();
-        saveAndRefresh();
-        setInterval(fetchCustomerOrders, 5000);
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            renderCart();
+        }
+
+        function renderCart() {
+            const list = document.getElementById('cart-list');
+            list.innerHTML = '';
+            let total = 0;
+            cart.forEach((item, idx) => {
+                total += (item.p * item.qty);
+                list.innerHTML += `
+                    <div class="cart-item p-3 rounded-lg flex justify-between items-center">
+                        <div>
+                            <p class="text-xs font-bold uppercase">${item.n}</p>
+                            <p class="text-[10px] text-orange-500">${item.qty} x ${item.p} Birr</p>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <span class="font-black">${item.p * item.qty}</span>
+                            <button onclick="removeFromCart(${idx})" class="text-zinc-600 hover:text-white text-lg">×</button>
+                        </div>
+                    </div>`;
+            });
+            document.getElementById('cart-total').innerText = total + " Birr";
+        }
+
+        function clearCart() {
+            cart = [];
+            renderCart();
+        }
+
+        async function checkoutOrder() {
+            if(cart.length === 0) return;
+            
+            // Send each item to Supabase
+            for (const item of cart) {
+                await _supabase.from('orders').insert([{ 
+                    item_name: item.n, 
+                    quantity: item.qty, 
+                    total_price: item.p * item.qty, 
+                    status: 'done' 
+                }]);
+            }
+
+            // Save to Local History
+            const summary = {
+                time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
+                items: cart.map(i => `${i.qty}x ${i.n}`).join(', '),
+                total: cart.reduce((sum, i) => sum + (i.p * i.qty), 0)
+            };
+            dailySales.unshift(summary);
+            localStorage.setItem('carmel_sales_history', JSON.stringify(dailySales));
+            
+            clearCart();
+            updateHistoryUI();
+        }
+
+        function updateHistoryUI() {
+            const hist = document.getElementById('history-list');
+            hist.innerHTML = '';
+            let totalRevenue = 0;
+            dailySales.forEach(s => {
+                totalRevenue += s.total;
+                hist.innerHTML += `
+                    <div class="p-3 bg-white/[0.02] border border-white/5 rounded-lg">
+                        <div class="flex justify-between text-[10px] text-zinc-500 mb-1">
+                            <span>${s.time}</span>
+                            <span class="font-black text-white">${s.total} Birr</span>
+                        </div>
+                        <p class="text-[10px] uppercase font-bold text-zinc-300 leading-tight">${s.items}</p>
+                    </div>`;
+            });
+            document.getElementById('daily-money').innerText = totalRevenue + " Birr";
+        }
+
+        // Init
+        filterMenu('burger');
+        updateHistoryUI();
     </script>
 </body>
 </html>
