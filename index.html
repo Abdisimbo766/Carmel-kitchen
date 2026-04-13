@@ -14,7 +14,7 @@
         .nav-btn.active { background: #f97316; color: black; border-color: #f97316; font-weight: 900; }
         .item-card { background: #111; border: 1px solid #222; padding: 12px 6px; border-radius: 10px; font-size: 10px; text-align: center; min-height: 80px; display: flex; flex-direction: column; justify-content: center; transition: 0.2s; }
         .item-card:hover { border-color: #f97316; }
-        #photo-display { width: 100%; height: 180px; object-fit: cover; border-radius: 1rem; border: 1px solid #222; margin-bottom: 1rem; }
+        #photo-area { width: 100%; height: 200px; object-fit: cover; border-radius: 1rem; border: 1px solid #222; margin-bottom: 1rem; background: #0a0a0a; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
     </style>
@@ -25,7 +25,7 @@
         <div>
             <h1 class="text-xl font-black text-orange-500 italic uppercase">CARMEL</h1>
             <div class="mt-1">
-                <p class="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">CBE / Abyssinia / Telebirr</p>
+                <p class="text-[9px] text-zinc-400 font-bold uppercase tracking-widest">CBE / Abyssinia / Telebirr</p>
                 <p class="text-xs font-black text-white">Account: Abdi Tesfaye</p>
             </div>
         </div>
@@ -44,23 +44,25 @@
             <button onclick="loadCat('breakfast', this)" class="nav-btn"><span class="text-[10px] uppercase font-black">Breakfast</span></button>
             <button onclick="loadCat('juice', this)" class="nav-btn"><span class="text-[10px] uppercase font-black">Juice</span></button>
             <button onclick="loadCat('coffee&tea', this)" class="nav-btn"><span class="text-[10px] uppercase font-black">Coffee</span></button>
+            <button onclick="loadCat('discount Combos', this)" class="nav-btn"><span class="text-[10px] uppercase font-black">Combos</span></button>
         </div>
 
-        <div class="col-span-9 lg:col-span-7 glass p-4 overflow-y-auto flex flex-col">
-            <img id="photo-display" src="https://images.unsplash.com/photo-1571091718767-18b5b1457add?q=80&w=1000&auto=format&fit=crop" alt="Food Photo">
-            
+        <div class="col-span-9 lg:col-span-7 glass p-4 overflow-y-auto">
+            <div id="photo-container">
+                <img id="photo-area" src="https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=800" alt="Menu View">
+            </div>
             <div id="menu-grid" class="grid grid-cols-2 lg:grid-cols-4 gap-2"></div>
         </div>
 
         <div class="hidden lg:flex lg:col-span-3 flex-col gap-3">
             <div class="glass flex-grow flex flex-col overflow-hidden border-orange-500/20">
                 <div class="p-3 border-b border-white/5 bg-white/[0.02] flex justify-between items-center">
-                    <span class="text-[10px] font-black uppercase text-orange-500">Selected Items</span>
-                    <button onclick="clearCart()" class="text-[9px] text-zinc-600 hover:text-white uppercase">Clear</button>
+                    <span class="text-[10px] font-black uppercase text-orange-500">Order Summary</span>
+                    <button onclick="clearCart()" class="text-[9px] text-zinc-600 hover:text-white uppercase font-bold">Clear</button>
                 </div>
                 <div id="cart-items" class="flex-grow overflow-y-auto p-3 space-y-2"></div>
                 <div class="p-4 bg-orange-500 text-black">
-                    <button onclick="sendToCashier()" class="w-full py-4 bg-black text-white font-black rounded-xl uppercase text-xs tracking-widest">
+                    <button onclick="askSendToCashier()" class="w-full py-4 bg-black text-white font-black rounded-xl uppercase text-xs tracking-widest">
                         Send to Cashier
                     </button>
                 </div>
@@ -74,6 +76,7 @@
         const fullMenu = [
             { c:'burger', n:'House Special Burger', p:650 }, { c:'burger', n:'Fasting Burger', p:390 }, { c:'burger', n:'Classic Beef Burger', p:490 }, { c:'burger', n:'Chessic Beef Burger ★', p:550 }, { c:'burger', n:'Spicy Hot Burger 🔥', p:550 }, { c:'burger', n:'Chicken Double Burger', p:590 }, { c:'burger', n:'Double Beef Burger', p:590 }, { c:'burger', n:'BBQ Juicy Burger', p:590 }, { c:'burger', n:'Mountain Burger (Taple) 🏔️', p:720 }, { c:'burger', n:'VIP Burger 🔥', p:790 }, { c:'burger', n:'2 Pc Special Bite Burger', p:450 }, { c:'burger', n:'3 Pc Special Bite Burger', p:550 }, { c:'burger', n:'5 Pc Special Bite Burger', p:950 }, { c:'burger', n:'Chips 🍟', p:190 },
             { c:'Chicken, Wraps & Sandwiches', n:'2 Pc Fried Chicken', p:490 }, { c:'Chicken, Wraps & Sandwiches', n:'3 Pc Fried Chicken', p:740 }, { c:'Chicken, Wraps & Sandwiches', n:'5 Pc Fried Chicken', p:1190 }, { c:'Chicken, Wraps & Sandwiches', n:'Beef Wrap', p:490 }, { c:'Chicken, Wraps & Sandwiches', n:'Chicken Wrap', p:490 }, { c:'Chicken, Wraps & Sandwiches', n:'Vegetable Wrap', p:350 }, { c:'Chicken, Wraps & Sandwiches', n:'Egg Sandwich', p:190 }, { c:'Chicken, Wraps & Sandwiches', n:'Vegetable Sandwich', p:290 }, { c:'Chicken, Wraps & Sandwiches', n:'Tuna Sandwich', p:440 },
+            { c:'discount Combos', n:'Kuriftu Combo', p:1290 }, { c:'discount Combos', n:'Kilole Combo 🍹', p:1590 }, { c:'discount Combos', n:'Calalaqa Combo', p:1290 }, { c:'discount Combos', n:'Hora Combo 🍹', p:1990 }, { c:'discount Combos', n:'Babogaya Combo', p:600 }, { c:'discount Combos', n:'Bishe Combo', p:600 },
             { c:'pizza', n:'Special Pizza (Regular)', p:690 }, { c:'pizza', n:'Special Pizza (Personal)', p:490 }, { c:'pizza', n:'Tuna Pizza (Regular)', p:670 }, { c:'pizza', n:'Beef Pizza (Regular)', p:650 }, { c:'pizza', n:'Chicken Pizza (Regular)', p:650 }, { c:'pizza', n:'Vegetable Pizza (Regular)', p:550 }, { c:'pizza', n:'Cheese Pizza (Regular)', p:550 },
             { c:'breakfast', n:'Full Breakfast', p:150 }, { c:'breakfast', n:'Special Full Breakfast', p:200 }, { c:'breakfast', n:'Chachabesa', p:200 }, { c:'breakfast', n:'Special Chachabesa', p:250 }, { c:'breakfast', n:'Fatria', p:250 }, { c:'breakfast', n:'Firfir', p:170 }, { c:'breakfast', n:'Tibs Firfir', p:290 }, { c:'breakfast', n:'Tibs', p:450 },
             { c:'juice', n:'Avocado 🥑', p:180 }, { c:'juice', n:'Mixed Juice 🍹', p:250 }, { c:'juice', n:'Carmel Special Shake ⭐', p:320 }, { c:'juice', n:'Strawberry Mojito 🍓', p:200 }, { c:'juice', n:'Lemon Mint Mojito 🍋', p:200 },
@@ -87,6 +90,13 @@
             btn.classList.add('active');
             const grid = document.getElementById('menu-grid');
             grid.innerHTML = '';
+            
+            // Photo Switch Logic
+            const img = document.getElementById('photo-area');
+            if(cat === 'burger') img.src = "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800";
+            else if(cat === 'juice') img.src = "https://images.unsplash.com/photo-1613478223719-2ab802602423?w=800";
+            else if(cat === 'pizza') img.src = "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800";
+
             fullMenu.filter(i => i.c === cat).forEach(item => {
                 grid.innerHTML += `<button onclick='add(${JSON.stringify(item)})' class="item-card font-black uppercase text-white"><span>${item.n}</span><span class="text-orange-500 mt-1">${item.p}</span></button>`;
             });
@@ -95,11 +105,6 @@
         function add(item) {
             const f = cart.find(i => i.n === item.n);
             if(f) f.qty++; else cart.push({...item, qty: 1});
-            // Switch photo based on category
-            const photo = document.getElementById('photo-display');
-            if(item.c === 'burger') photo.src = "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800";
-            if(item.c === 'juice') photo.src = "https://images.unsplash.com/photo-1613478223719-2ab802602423?w=800";
-            if(item.c === 'pizza') photo.src = "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800";
             render();
         }
 
@@ -116,13 +121,15 @@
 
         function clearCart() { cart = []; render(); }
 
-        async function sendToCashier() {
+        async function askSendToCashier() {
             if(cart.length === 0) return;
             if(confirm("Send this order to the Cashier?")) {
                 for(const i of cart) {
-                    await _supabase.from('orders').insert([{ item_name: i.n, quantity: i.qty, total_price: i.p * i.qty, status: 'pending' }]);
+                    await _supabase.from('orders').insert([{ 
+                        item_name: i.n, quantity: i.qty, total_price: i.p * i.qty, status: 'pending' 
+                    }]);
                 }
-                alert("Order sent! Please proceed to the cashier for payment.");
+                alert("Order Sent! Please show your phone to the cashier.");
                 clearCart();
             }
         }
