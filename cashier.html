@@ -11,6 +11,9 @@
         body { background: #000; color: white; font-family: 'Inter', sans-serif; }
         .card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1.5rem; }
         .input-field { background: #111; border: 1px solid rgba(255, 255, 255, 0.1); padding: 0.75rem; border-radius: 0.75rem; font-size: 0.875rem; width: 100%; color: white; }
+        .suggestion-box { background: #111; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 0.75rem; max-height: 200px; overflow-y: auto; position: absolute; width: 100%; z-index: 50; }
+        .suggestion-item { padding: 0.75rem; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.875rem; }
+        .suggestion-item:hover { background: #f97316; color: black; font-weight: bold; }
         .btn-confirm { background: #fff; color: #000; font-weight: 900; transition: 0.3s; }
         .btn-confirm:hover { background: #f97316; color: #fff; }
         .hidden { display: none; }
@@ -20,70 +23,62 @@
     <div class="max-w-[1600px] mx-auto">
         <header class="flex justify-between items-center mb-8 border-b border-orange-500/20 pb-4">
             <div>
-                <h1 class="text-3xl font-black italic text-orange-500 uppercase">CASHIER</h1>
+                <h1 class="text-3xl font-black italic text-orange-500 uppercase text-shadow-lg">CASHIER</h1>
                 <p id="staff-name-display" class="text-[10px] text-zinc-500 font-bold uppercase"></p>
             </div>
-            
             <div class="flex gap-6 items-center">
                 <div class="text-right">
                     <p id="daily-count" class="text-xl font-black text-white">0</p>
-                    <p class="text-[9px] text-zinc-500 uppercase font-black">Orders</p>
+                    <p class="text-[9px] text-zinc-500 uppercase font-black">Total Orders</p>
                 </div>
                 <div class="text-right">
                     <p id="daily-money" class="text-xl font-black text-orange-500">0 Birr</p>
                     <p class="text-[9px] text-zinc-500 uppercase font-black">Revenue</p>
                 </div>
                 <button onclick="downloadSales()" class="bg-zinc-800 p-3 rounded-lg hover:bg-zinc-700">📥</button>
-                <button onclick="clearDailySales()" class="text-zinc-800 hover:text-red-500">🗑️</button>
             </div>
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
             
             <div class="lg:col-span-1">
-                <h2 class="text-xs font-black uppercase text-white mb-4 ml-2 tracking-widest">Walk-in Order</h2>
-                <div class="card p-6 border-white/10 bg-white/[0.02]">
+                <h2 class="text-xs font-black uppercase text-white mb-4 ml-2 tracking-widest">Manual Order</h2>
+                <div class="card p-6 border-white/10 relative">
                     <div class="space-y-4">
-                        <p class="text-[10px] text-zinc-500 uppercase font-black">Select Item from Menu</p>
-                        <select id="menu-select" class="input-field" onchange="autoFillPrice()">
-                            <option value="">-- Choose Item --</option>
-                            </select>
+                        <div class="relative">
+                            <p class="text-[10px] text-zinc-500 mb-1 ml-1 uppercase">Search Menu</p>
+                            <input id="menu-search" type="text" placeholder="Type name (e.g. 'hou' or 'burg')..." class="input-field" oninput="searchMenu()" autocomplete="off">
+                            <div id="suggestions" class="suggestion-box hidden"></div>
+                        </div>
                         
                         <div class="grid grid-cols-2 gap-2">
                             <div>
-                                <p class="text-[10px] text-zinc-500 mb-1 ml-1 uppercase">Quantity</p>
+                                <p class="text-[10px] text-zinc-500 mb-1 ml-1 uppercase">Qty</p>
                                 <input id="manual-qty" type="number" value="1" oninput="updateManualTotal()" class="input-field">
                             </div>
                             <div>
-                                <p class="text-[10px] text-zinc-500 mb-1 ml-1 uppercase">Price (Each)</p>
+                                <p class="text-[10px] text-zinc-500 mb-1 ml-1 uppercase">Price</p>
                                 <input id="manual-price" type="number" readonly class="input-field opacity-50" placeholder="0">
                             </div>
                         </div>
 
-                        <div class="bg-orange-500/10 p-4 rounded-xl border border-orange-500/20 text-center">
-                            <p class="text-[10px] text-orange-500 uppercase font-black mb-1">Order Total</p>
-                            <p id="manual-total-display" class="text-2xl font-black text-orange-500">0 Birr</p>
-                        </div>
-
-                        <button onclick="createManualOrder()" class="w-full bg-orange-500 text-black font-black py-4 rounded-xl uppercase text-xs tracking-widest">Send to Kitchen</button>
+                        <div id="manual-total-display" class="bg-orange-500/10 p-4 rounded-xl text-center text-xl font-black text-orange-500 border border-orange-500/20">0 Birr</div>
+                        
+                        <button onclick="createManualOrder()" class="w-full bg-orange-500 text-black font-black py-4 rounded-xl uppercase text-xs tracking-widest shadow-lg shadow-orange-500/20">Send to Kitchen</button>
                     </div>
                 </div>
             </div>
 
             <div class="lg:col-span-1">
-                <h2 class="text-xs font-black uppercase text-orange-500 mb-4 ml-2 tracking-widest">Incoming Customer Orders</h2>
-                <div id="order-queue" class="space-y-4 max-h-[700px] overflow-y-auto pr-2">
-                    </div>
+                <h2 class="text-xs font-black uppercase text-orange-500 mb-4 ml-2 tracking-widest">Live Customer Orders</h2>
+                <div id="order-queue" class="space-y-4 max-h-[700px] overflow-y-auto"></div>
             </div>
 
             <div class="lg:col-span-1">
-                <h2 class="text-xs font-black uppercase text-zinc-500 mb-4 ml-2 tracking-widest">Stock & Expenses</h2>
+                <h2 class="text-xs font-black uppercase text-zinc-500 mb-4 ml-2 tracking-widest">Expenses</h2>
                 <div class="card p-6 border-white/5">
                     <div class="space-y-3">
-                        <select id="exp-item-select" class="input-field" onchange="toggleOtherBox()">
-                            <option value="">Loading Inventory...</option>
-                        </select>
-                        <div id="other-note-container" class="hidden"><input id="exp-note" type="text" placeholder="Note" class="input-field border-orange-500/30"></div>
+                        <select id="exp-item-select" class="input-field"></select>
                         <div class="grid grid-cols-3 gap-1">
                             <input id="exp-qty" type="number" placeholder="Qty" class="input-field">
                             <select id="exp-unit-select" class="input-field">
@@ -91,22 +86,17 @@
                             </select>
                             <input id="exp-price" type="number" placeholder="Price" class="input-field">
                         </div>
-                        <button onclick="logPurchase()" class="w-full bg-zinc-800 text-white font-black py-3 rounded-xl uppercase text-[10px]">Log Expense</button>
+                        <button onclick="logPurchase()" class="w-full bg-zinc-800 text-white font-black py-3 rounded-xl uppercase text-[10px]">Save Expense</button>
                     </div>
                 </div>
             </div>
 
             <div class="lg:col-span-1">
-                <h2 class="text-xs font-black uppercase text-zinc-500 mb-4 ml-2 tracking-widest">Today's Sales List</h2>
-                <div class="card p-4 h-[600px] flex flex-col">
-                    <div class="overflow-y-auto flex-1">
-                        <table class="w-full text-left text-[11px]">
-                            <thead class="sticky top-0 bg-[#0a0a0a] text-zinc-600 uppercase font-black border-b border-white/10">
-                                <tr><th class="py-2">Item</th><th class="py-2">Qty</th><th class="py-2 text-right">Birr</th></tr>
-                            </thead>
-                            <tbody id="sales-table-body" class="divide-y divide-white/5"></tbody>
-                        </table>
-                    </div>
+                <h2 class="text-xs font-black uppercase text-zinc-500 mb-4 ml-2 tracking-widest">Today's List</h2>
+                <div class="card p-4 h-[600px] overflow-y-auto">
+                    <table class="w-full text-left text-[11px]">
+                        <tbody id="sales-table-body" class="divide-y divide-white/5"></tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -115,35 +105,53 @@
     <script>
         const _supabase = supabase.createClient("https://csdpoyqbkjljaqknunyv.supabase.co", "sb_publishable_GZ9zqNM1CPfdyaEhLY_pOg_Fs4CSfrC");
         const staffName = sessionStorage.getItem('staffName') || 'Cashier';
-        document.getElementById('staff-name-display').innerText = `Staff: ${staffName}`;
+        document.getElementById('staff-name-display').innerText = `Active: ${staffName}`;
 
-        // --- THE MENU DATA ---
+        // FULL MENU DATA
         const carmelMenu = [
             { name: "Jebena Coffee", price: 35 },
+            { name: "House Special Burger", price: 280 },
             { name: "Carmel Special Shake", price: 180 },
             { name: "Avocado Juice", price: 120 },
             { name: "Mango Juice", price: 110 },
             { name: "Strawberry Mojito", price: 140 },
             { name: "Blueberry Mojito", price: 150 },
-            { name: "Milkshake", price: 130 },
-            { name: "Tea", price: 25 },
-            { name: "Macchiato", price: 45 }
+            { name: "Macchiato", price: 45 },
+            { name: "Chicken Sandwich", price: 220 }
         ];
 
-        // Load Menu into Select Box
-        const menuSelect = document.getElementById('menu-select');
-        carmelMenu.forEach(item => {
-            let opt = document.createElement('option');
-            opt.value = item.name;
-            opt.innerText = `${item.name} (${item.price} Birr)`;
-            opt.dataset.price = item.price;
-            menuSelect.appendChild(opt);
-        });
+        let selectedItem = null;
+        let dailySales = JSON.parse(localStorage.getItem('carmel_sales_list')) || [];
 
-        function autoFillPrice() {
-            const selected = menuSelect.options[menuSelect.selectedIndex];
-            const price = selected.dataset.price || 0;
-            document.getElementById('manual-price').value = price;
+        // SMART SEARCH LOGIC
+        function searchMenu() {
+            const query = document.getElementById('menu-search').value.toLowerCase();
+            const suggestionBox = document.getElementById('suggestions');
+            suggestionBox.innerHTML = '';
+            
+            if (query.length < 1) { suggestionBox.classList.add('hidden'); return; }
+
+            const matches = carmelMenu.filter(item => item.name.toLowerCase().includes(query));
+            
+            if (matches.length > 0) {
+                matches.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'suggestion-item';
+                    div.innerText = `${item.name} - ${item.price} Birr`;
+                    div.onclick = () => selectItem(item);
+                    suggestionBox.appendChild(div);
+                });
+                suggestionBox.classList.remove('hidden');
+            } else {
+                suggestionBox.classList.add('hidden');
+            }
+        }
+
+        function selectItem(item) {
+            selectedItem = item;
+            document.getElementById('menu-search').value = item.name;
+            document.getElementById('manual-price').value = item.price;
+            document.getElementById('suggestions').classList.add('hidden');
             updateManualTotal();
         }
 
@@ -153,53 +161,57 @@
             document.getElementById('manual-total-display').innerText = `${qty * price} Birr`;
         }
 
-        let dailySales = JSON.parse(localStorage.getItem('carmel_sales_list')) || [];
-
         async function createManualOrder() {
-            const item = document.getElementById('menu-select').value;
+            if(!selectedItem) return alert("Select an item from the list");
             const qty = parseInt(document.getElementById('manual-qty').value);
-            const priceEach = parseInt(document.getElementById('manual-price').value);
-            const total = qty * priceEach;
-
-            if(!item || !total) return alert("Please select an item");
+            const total = qty * selectedItem.price;
 
             const { error } = await _supabase.from('orders').insert([{ 
-                item_name: item, quantity: qty, total_price: total, status: 'done' 
+                item_name: selectedItem.name, quantity: qty, total_price: total, status: 'done' 
             }]);
 
             if(!error) {
-                dailySales.push({ time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}), item, qty, price: total });
+                dailySales.push({ time: new Date().toLocaleTimeString(), item: selectedItem.name, qty, price: total });
                 updateUI();
-                document.getElementById('menu-select').value = "";
+                document.getElementById('menu-search').value = "";
                 document.getElementById('manual-price').value = "";
-                document.getElementById('manual-qty').value = 1;
+                selectedItem = null;
                 updateManualTotal();
             }
         }
 
-        // --- REMAINING LOGIC (QUEUE/EXPENSES) ---
+        // DATABASE OPERATIONS
+        async function logPurchase() {
+            const item = document.getElementById('exp-item-select').value;
+            const qty = parseFloat(document.getElementById('exp-qty').value);
+            const unit = document.getElementById('exp-unit-select').value;
+            const price = parseFloat(document.getElementById('exp-price').value);
+            if(!item || !qty || !price) return;
+
+            const { error } = await _supabase.from('expenses').insert([{ 
+                item_name: item, amount_spent: qty * price, quantity_bought: qty, unit: unit, bought_by: staffName 
+            }]);
+            if(!error) location.reload();
+        }
+
         async function fetchOrders() {
-            const { data } = await _supabase.from('orders').select('*').eq('status', 'pending').order('created_at', { ascending: true });
+            const { data } = await _supabase.from('orders').select('*').eq('status', 'pending');
             const queue = document.getElementById('order-queue');
             queue.innerHTML = '';
-            if (data && data.length > 0) {
-                data.forEach(order => {
-                    queue.innerHTML += `
-                        <div class="card p-4 border-orange-500/20 bg-orange-500/[0.03]">
-                            <p class="text-lg font-black text-white uppercase">${order.item_name}</p>
-                            <p class="text-xs text-orange-500 font-bold">${order.quantity} pcs — ${order.total_price} Birr</p>
-                            <button onclick="confirmOrder('${order.id}', '${order.item_name}', ${order.quantity}, ${order.total_price})" class="w-full mt-3 btn-confirm py-3 rounded-xl uppercase text-[10px]">Confirm Order</button>
-                        </div>`;
-                });
-            } else {
-                queue.innerHTML = '<p class="p-10 text-center text-zinc-800 text-[10px] uppercase font-black italic">No customer orders</p>';
-            }
+            if (data) data.forEach(order => {
+                queue.innerHTML += `
+                    <div class="card p-4 border-orange-500/20">
+                        <p class="font-black uppercase">${order.item_name}</p>
+                        <p class="text-xs text-orange-500">${order.quantity} pcs — ${order.total_price} Birr</p>
+                        <button onclick="confirmOrder('${order.id}', '${order.item_name}', ${order.quantity}, ${order.total_price})" class="w-full mt-3 btn-confirm py-2 rounded-lg uppercase text-[10px]">Confirm</button>
+                    </div>`;
+            });
         }
 
         async function confirmOrder(id, item, qty, price) {
             const { error } = await _supabase.from('orders').update({ status: 'done' }).eq('id', id);
             if(!error) {
-                dailySales.push({ time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}), item, qty, price });
+                dailySales.push({ time: new Date().toLocaleTimeString(), item, qty, price });
                 updateUI();
                 fetchOrders();
             }
@@ -218,35 +230,19 @@
             localStorage.setItem('carmel_sales_list', JSON.stringify(dailySales));
         }
 
-        async function logPurchase() {
-            const item = document.getElementById('exp-item-select').value;
-            const note = document.getElementById('exp-note').value;
-            const qty = parseFloat(document.getElementById('exp-qty').value);
-            const unit = document.getElementById('exp-unit-select').value;
-            const price = parseFloat(document.getElementById('exp-price').value);
-            if(!item || !qty || !price) return;
-            const { error } = await _supabase.from('expenses').insert([{ item_name: item, description: note, amount_spent: qty * price, quantity_bought: qty, unit: unit, bought_by: staffName }]);
-            if(!error) location.reload();
+        async function loadInventory() {
+            const { data } = await _supabase.from('inventory').select('item_name');
+            const select = document.getElementById('exp-item-select');
+            select.innerHTML = '<option value="">-- Stock Item --</option>';
+            if(data) data.forEach(i => select.innerHTML += `<option value="${i.item_name}">${i.item_name}</option>`);
         }
 
         function downloadSales() {
             const ws = XLSX.utils.json_to_sheet(dailySales);
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Daily Sales");
+            XLSX.utils.book_append_sheet(wb, ws, "Sales");
             XLSX.writeFile(wb, "Carmel_Sales.xlsx");
         }
-
-        function clearDailySales() { if(prompt("Code:") === "2026") { dailySales = []; updateUI(); } }
-
-        async function loadInventory() {
-            const { data } = await _supabase.from('inventory').select('item_name');
-            const select = document.getElementById('exp-item-select');
-            select.innerHTML = '<option value="">-- Item --</option>';
-            if(data) data.forEach(i => select.innerHTML += `<option value="${i.item_name}">${i.item_name}</option>`);
-            select.innerHTML += `<option value="Other">Other</option>`;
-        }
-
-        function toggleOtherBox() { document.getElementById('other-note-container').classList.toggle('hidden', document.getElementById('exp-item-select').value !== "Other"); }
 
         updateUI();
         loadInventory();
