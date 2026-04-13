@@ -42,22 +42,14 @@
                         <input id="exp-note" type="text" placeholder="Note (e.g. Transport/Rent)" class="input-field border-orange-500/40">
                     </div>
                     
-                    <div class="grid grid-cols-3 gap-2">
+                    <div class="grid grid-cols-2 gap-3">
                         <input id="exp-qty" type="number" oninput="calcTotal()" placeholder="Qty" class="input-field">
-                        
-                        <select id="exp-unit-select" class="input-field">
-                            <option value="pcs">pcs</option>
-                            <option value="kg">kg</option>
-                            <option value="liter">liter</option>
-                            <option value="pkt">pkt</option>
-                        </select>
-
                         <input id="exp-unit-price" type="number" oninput="calcTotal()" placeholder="Price" class="input-field">
                     </div>
 
                     <div class="bg-orange-500/5 p-4 rounded-xl border border-orange-500/20 text-center text-2xl font-black text-orange-500" id="total-display">0 Birr</div>
 
-                    <button id="submit-btn" onclick="logPurchase()" class="w-full bg-orange-500 text-black font-black py-4 rounded-xl uppercase text-xs">Submit & Update</button>
+                    <button id="submit-btn" onclick="logPurchase()" class="w-full bg-orange-500 text-black font-black py-4 rounded-xl uppercase text-xs hover:bg-orange-400">Submit & Update</button>
                 </div>
             </div>
         </div>
@@ -68,11 +60,14 @@
         const staffName = sessionStorage.getItem('staffName') || 'CASHIER';
         document.getElementById('staff-name-display').innerText = `Staff: ${staffName}`;
         
+        let inventoryData = [];
+
         async function loadInventory() {
-            const { data } = await _supabase.from('inventory').select('item_name').order('item_name', { ascending: true });
+            const { data } = await _supabase.from('inventory').select('*').order('item_name', { ascending: true });
+            inventoryData = data || [];
             const select = document.getElementById('exp-item-select');
             select.innerHTML = '<option value="">-- Choose Item --</option>';
-            if(data) data.forEach(i => select.innerHTML += `<option value="${i.item_name}">${i.item_name}</option>`);
+            inventoryData.forEach(i => select.innerHTML += `<option value="${i.item_name}">${i.item_name}</option>`);
             select.innerHTML += `<option value="Other">Other (Transport/Rent)</option>`;
         }
 
@@ -84,51 +79,56 @@
         function calcTotal() {
             const q = parseFloat(document.getElementById('exp-qty').value) || 0;
             const p = parseFloat(document.getElementById('exp-unit-price').value) || 0;
-            document.getElementById('total-display').innerText = `${(q * p).toFixed(0)} Birr`;
+            document.getElementById('total-display').innerText = `${q * p} Birr`;
         }
 
         async function logPurchase() {
             const itemName = document.getElementById('exp-item-select').value;
             const note = document.getElementById('exp-note').value;
             const qty = parseFloat(document.getElementById('exp-qty').value);
-            const unit = document.getElementById('exp-unit-select').value; // Get the chosen unit
             const price = parseFloat(document.getElementById('exp-unit-price').value);
             const btn = document.getElementById('submit-btn');
 
             if(!itemName || !qty || !price) return alert("Please fill all fields!");
 
             btn.disabled = true;
-            btn.innerText = "SAVING...";
+            btn.innerText = "PROCESSING...";
 
-            const { error } = await _supabase.from('expenses').insert([{
+            // Find the unit from the inventory table
+            const match = inventoryData.find(i => i.item_name === itemName);
+            const unit = match ? match.unit : "item"; 
+
+            // THE DATA OBJECT - We send exactly what the DB expects
+            const expenseData = {
                 item_name: itemName,
                 description: note,
                 amount_spent: qty * price,
                 quantity_bought: qty,
-                unit: unit, // Now we are sending the unit properly!
+                unit: unit,
                 bought_by: staffName
-            }]);
+            };
+
+            const { error } = await _supabase.from('expenses').insert([expenseData]);
 
             if (error) {
-                alert("Database Error: " + error.message);
+                alert("Error: " + error.message);
                 btn.disabled = false;
                 btn.innerText = "SUBMIT & UPDATE";
                 return;
             }
 
-            // Update inventory if it's a specific stock item
-            if (itemName !== "Other") {
-                const { data: inv } = await _supabase.from('inventory').select('quantity').eq('item_name', itemName).single();
-                if(inv) {
-                    await _supabase.from('inventory').update({ quantity: inv.quantity + qty }).eq('item_name', itemName);
-                }
+            // Update Stock if it's a real inventory item
+            if (itemName !== "Other" && match) {
+                await _supabase.from('inventory').update({ quantity: match.quantity + qty }).eq('item_name', itemName);
             }
 
-            alert("Successfully saved!");
+            alert("Expense Logged Successfully!");
             location.reload();
         }
 
-        async function placeOrder() { alert("Order system active"); }
+        async function placeOrder() {
+            alert("Order function triggered.");
+        }
 
         loadInventory();
     </script>
