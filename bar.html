@@ -7,38 +7,56 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { background-color: #000; color: white; }
-        .order-card { 
-            animation: pulse 2s infinite; 
+        body { background-color: #000; color: white; font-family: 'Inter', sans-serif; }
+        
+        .bar-card { 
+            animation: pulse-blue 2s infinite; 
             background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(15px);
+            backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
         }
-        @keyframes pulse {
+
+        @keyframes pulse-blue {
             0% { transform: scale(1); }
-            50% { transform: scale(1.01); border-color: #00d4ff; }
+            50% { transform: scale(1.02); border-color: #3b82f6; box-shadow: 0 0 20px rgba(59, 130, 246, 0.2); }
             100% { transform: scale(1); }
         }
     </style>
 </head>
 <body class="p-6">
+
     <div class="fixed inset-0 -z-10 overflow-hidden">
-        <div class="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-black"></div>
+        <div class="absolute inset-0 bg-gradient-to-br from-blue-950/30 via-black to-black"></div>
+        <div class="absolute top-0 left-0 w-full h-full opacity-20" style="background-image: radial-gradient(#1e3a8a 1px, transparent 1px); background-size: 40px 40px;"></div>
     </div>
 
-    <div class="flex justify-between items-center mb-8 border-b border-blue-900/30 pb-4">
-        <h1 class="text-3xl font-black text-blue-400 font-italic">🍹 CARMEL BAR ORDERS</h1>
-        <div id="status" class="text-xs bg-blue-500/10 text-blue-400 px-3 py-1 rounded-full border border-blue-500/20">ዝግጁ</div>
+    <div class="flex justify-between items-center mb-8 border-b border-blue-900/40 pb-4 relative z-10">
+        <div>
+            <h1 class="text-3xl font-black text-blue-500 italic uppercase tracking-tighter">CARMEL BAR</h1>
+            <p class="text-[10px] text-blue-400 font-bold tracking-[0.3em]">DRINK PREPARATION DISPLAY</p>
+        </div>
+        <div id="status" class="text-xs bg-blue-500/10 text-blue-400 px-4 py-1.5 rounded-full border border-blue-500/20 font-bold uppercase">System Active</div>
     </div>
 
-    <div id="bar-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    <div id="bar-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10">
+        </div>
 
     <audio id="notif-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
 
     <script>
+        // Supabase Credentials
         const SUPABASE_URL = "https://csdpoyqbkjljaqknunyv.supabase.co";
         const SUPABASE_KEY = "sb_publishable_GZ9zqNM1CPfdyaEhLY_pOg_Fs4CSfrC";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        const barGrid = document.getElementById('bar-grid');
+        const notifSound = document.getElementById('notif-sound');
+
+        // Security: Redirect if not logged in
+        if (sessionStorage.getItem('isLogged') !== 'true') {
+            window.location.href = "Carmel%20login.html"; 
+        }
 
         async function loadBarOrders() {
             const { data, error } = await _supabase
@@ -48,45 +66,67 @@
                 .order('created_at', { ascending: true });
 
             if (data) {
-                const barGrid = document.getElementById('bar-grid');
                 barGrid.innerHTML = '';
-                // Filtering for common bar keywords
+                
+                // Define keywords for the Bar
+                const barKeywords = ['juice', 'coffee', 'tea', 'milkshake', 'mojito', 'iced', 'latte', 'macchiato', 'jebena', 'spris'];
+                
                 const barItems = data.filter(order => 
-                    order.items.toLowerCase().includes('juice') || 
-                    order.items.toLowerCase().includes('coffee') || 
-                    order.items.toLowerCase().includes('tea') || 
-                    order.items.toLowerCase().includes('milkshake') || 
-                    order.items.toLowerCase().includes('mojito')
+                    barKeywords.some(keyword => order.items.toLowerCase().includes(keyword))
                 );
+
+                if (barItems.length === 0) {
+                    barGrid.innerHTML = '<div class="col-span-full py-20 text-center text-slate-600 font-black uppercase text-xs tracking-widest">ምንም መጠጥ ትዕዛዝ የለም</div>';
+                }
 
                 barItems.forEach(order => {
                     const card = document.createElement('div');
-                    card.className = "p-6 rounded-3xl order-card";
+                    card.className = "rounded-[2rem] p-6 bar-card";
                     card.innerHTML = `
-                        <div class="flex justify-between mb-4">
-                            <span class="text-slate-500 text-[10px]">${new Date(order.created_at).toLocaleTimeString()}</span>
-                            <span class="text-blue-400 text-[10px] font-bold tracking-widest uppercase">Drink Order</span>
+                        <div class="flex justify-between items-start mb-6">
+                            <div>
+                                <p class="text-[10px] text-blue-400 font-bold uppercase tracking-widest">${new Date(order.created_at).toLocaleTimeString()}</p>
+                                <p class="text-[10px] text-slate-500 font-medium">TABLE ORDER</p>
+                            </div>
+                            <span class="bg-blue-600/20 text-blue-400 text-[9px] px-2 py-1 rounded-md font-black uppercase">Drinks</span>
                         </div>
-                        <h3 class="text-xl font-bold mb-6 text-white">${order.items}</h3>
-                        <button onclick="markDone('${order.id}')" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-2xl transition-all">
-                            ተረክቧል ✅
-                        </button>
+                        
+                        <h3 class="text-xl font-bold mb-8 text-white leading-tight uppercase">${order.items}</h3>
+                        
+                        <div class="flex items-center justify-between mt-auto">
+                            <span class="text-xs font-bold text-slate-400">${order.payment_method}</span>
+                            <button onclick="completeOrder('${order.id}')" class="bg-blue-600 hover:bg-blue-500 text-white font-black py-3 px-8 rounded-2xl transition-all active:scale-95 shadow-lg shadow-blue-900/20">
+                                ተረክቧል ✅
+                            </button>
+                        </div>
                     `;
                     barGrid.appendChild(card);
                 });
             }
         }
 
-        async function markDone(id) {
-            await _supabase.from('orders').update({ status: 'done' }).eq('id', id);
-            loadBarOrders();
+        async function completeOrder(orderId) {
+            const { error } = await _supabase
+                .from('orders')
+                .update({ status: 'done' })
+                .eq('id', orderId);
+            
+            if (!error) loadBarOrders();
         }
 
-        _supabase.channel('bar-orders')
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, () => loadBarOrders())
+        // Real-time Update Listener
+        _supabase
+            .channel('bar-updates')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
+                if (payload.new && payload.new.status === 'verified') {
+                    notifSound.play().catch(e => console.log("Sound muted by browser"));
+                }
+                loadBarOrders();
+            })
             .subscribe();
 
+        // Initial Load
         loadBarOrders();
     </script>
 </body>
-</html
+</html>
