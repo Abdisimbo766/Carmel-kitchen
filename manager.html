@@ -51,7 +51,7 @@
                         0 Birr
                     </div>
 
-                    <button onclick="logPurchase()" class="w-full bg-orange-500 text-black font-black py-4 rounded-xl uppercase text-xs">Submit & Update</button>
+                    <button id="submit-btn" onclick="logPurchase()" class="w-full bg-orange-500 text-black font-black py-4 rounded-xl uppercase text-xs">Submit & Update</button>
                 </div>
             </div>
         </div>
@@ -61,12 +61,15 @@
         const _supabase = supabase.createClient("https://csdpoyqbkjljaqknunyv.supabase.co", "sb_publishable_GZ9zqNM1CPfdyaEhLY_pOg_Fs4CSfrC");
         const staffName = sessionStorage.getItem('staffName') || 'Guest';
         document.getElementById('staff-name-display').innerText = `Staff: ${staffName}`;
+        
+        let fullInventory = [];
 
         async function loadInventoryDropdown() {
-            const { data } = await _supabase.from('inventory').select('item_name').order('item_name', { ascending: true });
+            const { data } = await _supabase.from('inventory').select('*').order('item_name', { ascending: true });
+            fullInventory = data || [];
             const select = document.getElementById('exp-item-select');
             select.innerHTML = '<option value="">-- Choose Item --</option>';
-            if(data) data.forEach(item => select.innerHTML += `<option value="${item.item_name}">${item.item_name}</option>`);
+            fullInventory.forEach(item => select.innerHTML += `<option value="${item.item_name}">${item.item_name}</option>`);
             select.innerHTML += `<option value="Other (Non-Stock)">Other (Transport/Rent/etc)</option>`;
         }
 
@@ -78,42 +81,53 @@
         function calcTotal() {
             const qty = parseFloat(document.getElementById('exp-qty').value) || 0;
             const price = parseFloat(document.getElementById('exp-unit-price').value) || 0;
-            const total = qty * price;
-            document.getElementById('total-display').innerText = `${total} Birr`;
-            return total;
+            document.getElementById('total-display').innerText = `${qty * price} Birr`;
         }
 
         async function logPurchase() {
-            const item = document.getElementById('exp-item-select').value;
+            const btn = document.getElementById('submit-btn');
+            const itemName = document.getElementById('exp-item-select').value;
             const note = document.getElementById('exp-note').value;
             const qty = parseFloat(document.getElementById('exp-qty').value);
             const price = parseFloat(document.getElementById('exp-unit-price').value);
-            const total = qty * price;
+            
+            if(!itemName || !qty || !price) return alert("Please fill all fields!");
+            
+            btn.disabled = true;
+            btn.innerText = "SAVING...";
 
-            if(!item || !qty || !price) return alert("Fill all fields");
+            // GET THE UNIT FROM THE DATABASE OR DEFAULT TO "PCS"
+            const itemObj = fullInventory.find(i => i.item_name === itemName);
+            const unitToSend = itemObj ? itemObj.unit : "pcs"; 
 
             const { error } = await _supabase.from('expenses').insert([{ 
-                item_name: item, 
+                item_name: itemName, 
                 description: note, 
-                amount_spent: total, 
+                amount_spent: qty * price, 
                 quantity_bought: qty, 
-                unit: "purchase", // THIS FIXES YOUR ERROR
+                unit: unitToSend, // This line fixes your error!
                 bought_by: staffName 
             }]);
 
-            if (error) return alert("Error: " + error.message);
-
-            if (item !== "Other (Non-Stock)") {
-                const { data: inv } = await _supabase.from('inventory').select('quantity').eq('item_name', item).single();
-                if(inv) await _supabase.from('inventory').update({ quantity: inv.quantity + qty }).eq('item_name', item);
+            if (error) {
+                alert("Error: " + error.message);
+                btn.disabled = false;
+                btn.innerText = "SUBMIT & UPDATE";
+                return;
             }
 
-            alert("Logged!");
+            // Update Stock Inventory if it's a real item
+            if (itemName !== "Other (Non-Stock)" && itemObj) {
+                await _supabase.from('inventory').update({ quantity: itemObj.quantity + qty }).eq('item_name', itemName);
+            }
+
+            alert("Successfully Saved!");
             location.reload();
         }
 
         async function placeOrder() {
-            alert("Order Submitted");
+            // Your order logic
+            alert("Order Clicked");
         }
 
         loadInventoryDropdown();
