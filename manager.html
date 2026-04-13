@@ -9,48 +9,63 @@
     <style>
         body { background: #000; color: white; font-family: 'Inter', sans-serif; }
         .card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 2rem; }
+        .status-badge { padding: 4px 8px; border-radius: 6px; font-size: 8px; font-weight: 900; text-transform: uppercase; }
         .filter-btn { font-size: 10px; font-weight: 900; padding: 6px 20px; border-radius: 9999px; border: 1px solid #f97316; transition: 0.3s; }
         .filter-inactive { border-color: rgba(255,255,255,0.1); color: #666; }
         .filter-active { background: #f97316; color: black; }
     </style>
 </head>
-<body class="p-8">
+<body class="p-6">
     <div class="max-w-7xl mx-auto">
-        <header class="flex justify-between items-start mb-16">
+        <header class="flex justify-between items-center mb-12 border-b border-orange-500/20 pb-6">
             <div>
-                <h1 class="text-5xl font-black italic text-orange-500 uppercase tracking-tighter italic">MANAGER HUB</h1>
-                <div class="flex gap-3 mt-6">
+                <h1 class="text-4xl font-black italic text-orange-500 uppercase tracking-tighter">MANAGER HUB</h1>
+                <div class="flex gap-2 mt-4">
                     <button onclick="setTimeFilter(1)" id="btn-1" class="filter-btn filter-active">1 DAY</button>
                     <button onclick="setTimeFilter(7)" id="btn-7" class="filter-btn filter-inactive">7 DAYS</button>
                     <button onclick="setTimeFilter(30)" id="btn-30" class="filter-btn filter-inactive">30 DAYS</button>
                 </div>
             </div>
             
-            <div class="flex gap-12">
+            <div class="flex gap-8">
                 <div class="text-right">
-                    <p id="revenue" class="text-3xl font-bold">0 Birr</p>
-                    <p class="text-[10px] text-zinc-500 uppercase font-black tracking-widest">Today's Sales</p>
+                    <p id="revenue" class="text-2xl font-bold text-white">0 Birr</p>
+                    <p id="sales-label" class="text-[10px] text-zinc-500 uppercase font-black">Today's Sales</p>
                 </div>
-                <div class="text-right">
-                    <p id="net-profit" class="text-4xl font-black text-green-400">-0 Birr</p>
-                    <p class="text-[10px] text-zinc-500 uppercase font-black tracking-widest">Net Profit</p>
+                <div class="text-right border-l border-white/10 pl-8">
+                    <p id="net-profit" class="text-2xl font-black text-green-400">0 Birr</p>
+                    <p class="text-[10px] text-zinc-500 uppercase font-black">Net Profit</p>
                 </div>
             </div>
         </header>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-12">
-            <div>
-                <h2 class="text-sm font-black uppercase text-orange-500/50 mb-6 tracking-widest">Recent Records</h2>
-                <div class="card p-8 space-y-6" id="expense-list">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+            <div class="space-y-10">
+                <div>
+                    <h2 class="text-xs font-black uppercase text-orange-500/50 mb-4 ml-2">Staff Control</h2>
+                    <div id="staff-list" class="space-y-4"></div>
+                </div>
+                
+                <div>
+                    <h2 class="text-xs font-black uppercase text-red-500/50 mb-4 ml-2">Recent Records</h2>
+                    <div class="card p-6">
+                        <div id="expense-list" class="space-y-5"></div>
                     </div>
+                </div>
             </div>
 
             <div class="lg:col-span-2">
-                <h2 class="text-sm font-black uppercase text-orange-500/50 mb-6 tracking-widest">Stock Inventory</h2>
-                <div class="card p-10">
+                <h2 class="text-xs font-black uppercase text-orange-500/50 mb-4 ml-2">Stock Inventory</h2>
+                <div class="card p-8 overflow-x-auto">
                     <table class="w-full text-left">
-                        <tbody id="stock-list" class="divide-y divide-white/5">
-                            </tbody>
+                        <thead>
+                            <tr class="text-[10px] text-zinc-500 border-b border-white/10 uppercase font-black">
+                                <th class="pb-4">Item Name</th>
+                                <th class="pb-4">Quantity</th>
+                                <th class="pb-4">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stock-list" class="text-sm"></tbody>
                     </table>
                 </div>
             </div>
@@ -67,6 +82,8 @@
             [1, 7, 30].forEach(d => {
                 document.getElementById(`btn-${d}`).className = d === days ? 'filter-btn filter-active' : 'filter-btn filter-inactive';
             });
+            const labelMap = { 1: "Today's Sales", 7: "Last 7 Days", 30: "Last 30 Days" };
+            document.getElementById('sales-label').innerText = labelMap[days];
             refreshData();
         }
 
@@ -76,54 +93,83 @@
             filterDate.setHours(0,0,0,0);
             const iso = filterDate.toISOString();
 
-            // 1. Fetch Data
+            // 1. DATA FETCH
             const { data: expData } = await _supabase.from('expenses').select('*').gte('created_at', iso).order('created_at', { ascending: false });
             const { data: revData } = await _supabase.from('orders').select('total_price').eq('status', 'done').gte('created_at', iso);
+            const { data: stfData } = await _supabase.from('staff').select('*');
             const { data: stockData } = await _supabase.from('inventory').select('*').order('item_name', { ascending: true });
 
-            // 2. Calculations
+            // 2. HEADER STATS
             let totalSales = 0; if(revData) revData.forEach(r => totalSales += r.total_price);
             let totalExp = 0; if(expData) expData.forEach(e => totalExp += e.amount_spent);
             
             document.getElementById('revenue').innerText = `${totalSales} Birr`;
             document.getElementById('net-profit').innerText = `${totalSales - totalExp} Birr`;
 
-            // 3. Render Expenses (With Description/Note)
+            // 3. RENDER RECENT RECORDS (WITH NOTES)
             const expDiv = document.getElementById('expense-list');
             expDiv.innerHTML = '';
             if(expData) {
-                expData.slice(0, 10).forEach(e => {
+                expData.slice(0, 8).forEach(e => {
                     expDiv.innerHTML += `
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="font-bold text-white text-lg leading-tight">${e.item_name}</p>
-                                ${e.description ? `<p class="text-orange-500 text-xs font-bold italic mt-1">"${e.description}"</p>` : ''}
-                                <p class="text-[9px] text-zinc-600 uppercase font-black mt-1">${e.bought_by || 'CASHIER'}</p>
+                        <div class="border-b border-white/5 pb-2">
+                            <div class="flex justify-between">
+                                <p class="font-bold text-white text-sm uppercase">${e.item_name}</p>
+                                <p class="text-red-400 font-bold text-sm">-${e.amount_spent}</p>
                             </div>
-                            <p class="text-red-500 font-bold text-lg">-${e.amount_spent}</p>
+                            ${e.description ? `<p class="text-[10px] text-orange-500 font-bold italic mt-1">Note: ${e.description}</p>` : ''}
+                            <p class="text-[9px] text-zinc-600 uppercase font-black">${e.bought_by || 'CASHIER'}</p>
                         </div>`;
                 });
             }
 
-            // 4. Render Stock (Fixing your empty box)
+            // 4. RENDER STAFF CONTROL
+            const stfDiv = document.getElementById('staff-list');
+            stfDiv.innerHTML = '';
+            if(stfData) {
+                stfData.forEach(s => {
+                    stfDiv.innerHTML += `
+                        <div class="card p-4 flex justify-between items-center">
+                            <div>
+                                <p class="text-[9px] text-orange-500 uppercase font-black tracking-widest">${s.role}</p>
+                                <p class="font-bold text-sm text-white">${s.full_name}</p>
+                            </div>
+                            <button onclick="delStaff('${s.id}')" class="text-red-500 text-[10px] font-black hover:bg-red-500/10 p-2 rounded-lg">RESET</button>
+                        </div>`;
+                });
+            }
+
+            // 5. RENDER INVENTORY TABLE
             const stockTable = document.getElementById('stock-list');
             stockTable.innerHTML = '';
             if(stockData) {
-                stockData.forEach(s => {
-                    const isLow = s.quantity <= s.min_limit;
+                stockData.forEach(i => {
+                    const low = i.quantity <= i.min_limit;
                     stockTable.innerHTML += `
-                        <tr class="group">
-                            <td class="py-5 font-bold text-zinc-300 text-lg uppercase">${s.item_name}</td>
-                            <td class="py-5 text-right font-black ${isLow ? 'text-red-500' : 'text-white'} text-xl">
-                                ${s.quantity} <span class="text-[10px] text-zinc-500 ml-1 font-normal">${s.unit}</span>
+                        <tr class="border-b border-white/5 hover:bg-white/5 transition-all">
+                            <td class="py-4 font-bold text-zinc-200 uppercase">${i.item_name}</td>
+                            <td class="py-4 ${low ? 'text-red-500' : 'text-white'} font-black text-lg">
+                                ${i.quantity} <span class="text-[10px] text-zinc-500 font-normal ml-1">${i.unit}</span>
+                            </td>
+                            <td class="py-4">
+                                <span class="${low ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'} status-badge">
+                                    ${low ? 'Low Stock' : 'Ok Stock'}
+                                </span>
                             </td>
                         </tr>`;
                 });
             }
         }
 
+        async function delStaff(id) { 
+            if(confirm("Confirm: Remove this staff account?")) { 
+                await _supabase.from('staff').delete().eq('id', id); 
+                refreshData(); 
+            } 
+        }
+
         refreshData();
-        setInterval(refreshData, 30000); // Auto refresh every 30s
+        setInterval(refreshData, 30000);
     </script>
 </body>
 </html>
