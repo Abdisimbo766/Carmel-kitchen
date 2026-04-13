@@ -3,148 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carmel Bar - Display</title>
+    <title>Carmel - Bar & Drinks</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { background-color: #000; color: white; font-family: 'Inter', sans-serif; }
-        
-        .bar-card { 
-            animation: pulse-blue 2s infinite; 
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.3s ease;
-        }
-
-        @keyframes pulse-blue {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.02); border-color: #3b82f6; box-shadow: 0 0 20px rgba(59, 130, 246, 0.2); }
-            100% { transform: scale(1); }
-        }
+        body { background: #000; color: white; font-family: 'Inter', sans-serif; }
+        .drink-card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(0, 150, 255, 0.1); backdrop-filter: blur(10px); border-radius: 2.5rem; transition: 0.3s; }
+        .drink-card:hover { border-color: #3b82f6; background: rgba(59, 130, 246, 0.05); }
+        .glow-blue { box-shadow: 0 0 20px rgba(59, 130, 246, 0.1); }
     </style>
 </head>
-<body class="p-6">
+<body class="p-6 lg:p-12">
 
-    <div class="fixed inset-0 -z-10 overflow-hidden">
-        <div class="absolute inset-0 bg-gradient-to-br from-blue-950/30 via-black to-black"></div>
-        <div class="absolute top-0 left-0 w-full h-full opacity-20" style="background-image: radial-gradient(#1e3a8a 1px, transparent 1px); background-size: 40px 40px;"></div>
-    </div>
-
-    <div class="flex justify-between items-center mb-8 border-b border-blue-900/40 pb-4 relative z-10">
+    <header class="flex justify-between items-center mb-12 border-b border-blue-500/20 pb-8">
         <div>
-            <h1 class="text-3xl font-black text-blue-500 italic uppercase tracking-tighter">CARMEL BAR</h1>
-            <p class="text-[10px] text-blue-400 font-bold tracking-[0.3em]">DRINK PREPARATION DISPLAY</p>
+            <h1 class="text-5xl font-black italic tracking-tighter text-blue-500 uppercase">Bar Orders</h1>
+            <p id="staff-name-display" class="text-[10px] text-zinc-500 uppercase tracking-[0.4em] mt-2 font-bold">Barista Loading...</p>
         </div>
-        <div id="status" class="text-xs bg-blue-500/10 text-blue-400 px-4 py-1.5 rounded-full border border-blue-500/20 font-bold uppercase tracking-widest">System Active</div>
-    </div>
-
-    <div id="bar-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10">
+        <div class="text-right">
+            <span class="text-[10px] font-black uppercase tracking-widest text-blue-400">Drinks Station</span>
         </div>
+    </header>
 
-    <audio id="notif-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
+    <div id="orders-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        </div>
 
     <script>
-        const SUPABASE_URL = "https://csdpoyqbkjljaqknunyv.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_GZ9zqNM1CPfdyaEhLY_pOg_Fs4CSfrC";
-        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const _supabase = supabase.createClient("https://csdpoyqbkjljaqknunyv.supabase.co", "sb_publishable_GZ9zqNM1CPfdyaEhLY_pOg_Fs4CSfrC");
 
-        const barGrid = document.getElementById('bar-grid');
-        const notifSound = document.getElementById('notif-sound');
-
-        // --- SECURITY CHECK FUNCTION ---
-        async function checkBarAccess() {
-            const loggedInUser = sessionStorage.getItem('staffName');
-            
-            const { data, error } = await _supabase
-                .from('staff')
-                .select('*')
-                .eq('full_name', loggedInUser)
-                .maybeSingle();
-
-            if (!data || error) {
-                alert("የባር መለያዎ ተሰርዟል! (Bar account removed)");
-                sessionStorage.clear();
-                window.location.href = "Login.html";
-                return false;
-            }
-            return true;
+        // 1. SECURITY CHECK
+        const staffName = sessionStorage.getItem('staffName');
+        if (!staffName) {
+            window.location.href = "Login.html";
+        } else {
+            document.getElementById('staff-name-display').innerText = `Barista: ${staffName}`;
         }
 
-        async function loadBarOrders() {
-            const hasAccess = await checkBarAccess();
-            if (!hasAccess) return;
-
-            const { data, error } = await _supabase
+        // 2. LOAD DRINK ORDERS
+        async function loadOrders() {
+            const { data: orders } = await _supabase
                 .from('orders')
                 .select('*')
-                .eq('status', 'verified')
+                .eq('status', 'pending')
                 .order('created_at', { ascending: true });
 
-            if (data) {
-                barGrid.innerHTML = '';
-                
-                // Keywords to filter for the Bar
-                const barKeywords = ['juice', 'coffee', 'tea', 'milkshake', 'mojito', 'iced', 'latte', 'macchiato', 'jebena', 'spris', 'shake'];
-                
-                const barItems = data.filter(order => 
-                    barKeywords.some(keyword => order.items.toLowerCase().includes(keyword))
-                );
+            const container = document.getElementById('orders-container');
+            container.innerHTML = '';
 
-                if (barItems.length === 0) {
-                    barGrid.innerHTML = '<div class="col-span-full py-20 text-center text-slate-600 font-black uppercase text-xs tracking-widest">ምንም የታዘዘ መጠጥ የለም</div>';
-                }
-
-                barItems.forEach(order => {
-                    const card = document.createElement('div');
-                    card.className = "rounded-[2rem] p-6 bar-card";
-                    card.innerHTML = `
-                        <div class="flex justify-between items-start mb-6">
+            if (orders && orders.length > 0) {
+                orders.forEach(order => {
+                    const items = JSON.parse(order.items_json || '[]');
+                    
+                    container.innerHTML += `
+                        <div class="drink-card p-8 flex flex-col justify-between glow-blue">
                             <div>
-                                <p class="text-[10px] text-blue-400 font-bold uppercase tracking-widest">${new Date(order.created_at).toLocaleTimeString()}</p>
-                                <p class="text-[10px] text-slate-500 font-medium tracking-tighter">TABLE ORDER</p>
+                                <p class="text-blue-500 font-black mb-4">ORDER #${order.id.toString().slice(-3)}</p>
+                                <div class="space-y-4 mb-8">
+                                    ${items.map(i => `
+                                        <div class="flex justify-between items-center border-b border-white/5 pb-2">
+                                            <p class="font-bold text-lg text-zinc-200">${i.name}</p>
+                                            <p class="text-blue-400 font-black">x${i.quantity}</p>
+                                        </div>
+                                    `).join('')}
+                                </div>
                             </div>
-                            <span class="bg-blue-600/20 text-blue-400 text-[9px] px-2 py-1 rounded-md font-black uppercase">Drinks</span>
-                        </div>
-                        
-                        <h3 class="text-xl font-bold mb-8 text-white leading-tight uppercase">${order.items}</h3>
-                        
-                        <div class="flex items-center justify-between mt-auto">
-                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">${order.payment_method}</span>
-                            <button onclick="completeOrder('${order.id}')" class="bg-blue-600 hover:bg-blue-500 text-white font-black py-3 px-8 rounded-2xl transition-all active:scale-95 shadow-lg shadow-blue-900/20">
-                                ተረክቧል ✅
+                            <button onclick="finishOrder('${order.id}', ${order.items_json})" 
+                                class="w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-2xl font-black uppercase text-sm transition-all active:scale-95">
+                                Drink Ready 🥤
                             </button>
                         </div>
                     `;
-                    barGrid.appendChild(card);
                 });
+            } else {
+                container.innerHTML = `<div class="col-span-full text-center py-20 text-zinc-700 font-bold uppercase tracking-widest">No drinks in queue...</div>`;
             }
         }
 
-        async function completeOrder(orderId) {
-            const hasAccess = await checkBarAccess();
-            if (!hasAccess) return;
+        // 3. FINISH & SUBTRACT STOCK
+        async function finishOrder(orderId, items) {
+            const { error } = await _supabase.from('orders').update({ status: 'done' }).eq('id', orderId);
 
-            const { error } = await _supabase
-                .from('orders')
-                .update({ status: 'done' })
-                .eq('id', orderId);
-            
-            if (!error) loadBarOrders();
+            if (!error) {
+                for (const item of items) {
+                    const name = item.name.toLowerCase();
+                    const qty = item.quantity;
+
+                    // Coffee Logic (Subtracts 20g per cup)
+                    if (name.includes('coffee') || name.includes('jebena') || name.includes('macchiato')) {
+                        await updateInventory('Coffee Beans', 0.02 * qty);
+                    }
+
+                    // Milk Logic (Subtracts 0.2L per cup)
+                    if (name.includes('milk') || name.includes('macchiato') || name.includes('shake')) {
+                        await updateInventory('Milk', 0.2 * qty);
+                    }
+
+                    // Avocado Logic (Subtracts 0.5kg per juice)
+                    if (name.includes('avocado')) {
+                        await updateInventory('Avocado', 0.5 * qty);
+                    }
+
+                    // Sugar Logic (Subtracts 0.05kg per drink)
+                    if (name.includes('juice') || name.includes('tea')) {
+                        await updateInventory('Sugar', 0.05 * qty);
+                    }
+                }
+                loadOrders();
+            }
         }
 
-        // Real-time Update Listener
-        _supabase.channel('bar-updates')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
-                if (payload.new && payload.new.status === 'verified') {
-                    notifSound.play().catch(e => console.log("Sound muted by browser"));
-                }
-                loadBarOrders();
-            })
-            .subscribe();
+        async function updateInventory(itemName, amount) {
+            const { data } = await _supabase.from('inventory').select('id, quantity').eq('name', itemName).maybeSingle();
+            if (data) {
+                await _supabase.from('inventory').update({ quantity: data.quantity - amount }).eq('id', data.id);
+            }
+        }
 
-        // Initial Load
-        loadBarOrders();
+        // Live refresh
+        _supabase.channel('bar_updates').on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, loadOrders).subscribe();
+        loadOrders();
     </script>
 </body>
 </html>
