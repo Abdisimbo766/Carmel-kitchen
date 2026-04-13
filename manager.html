@@ -60,9 +60,11 @@
 
         async function refreshData() {
             await checkSecurity();
+            
             // Load Revenue
             const { data: rev } = await _supabase.from('orders').select('total_price').eq('status', 'done');
-            let total = 0; if(rev) rev.forEach(o => total += o.total_price);
+            let total = 0; 
+            if(rev) rev.forEach(o => total += o.total_price);
             document.getElementById('revenue').innerText = `${total} Birr`;
 
             // Load Staff
@@ -73,17 +75,31 @@
                 stfDiv.innerHTML += `<div class="card p-4 flex justify-between"><div><p class="text-[9px] text-orange-500 uppercase font-bold">${s.role}</p><p class="font-bold">${s.full_name}</p></div><button onclick="delStaff('${s.id}')" class="text-red-500 text-[10px] font-bold">RESET</button></div>`;
             });
 
-            // Load Stock
-            const { data: stk } = await _supabase.from('inventory').select('*');
+            // Load Stock - FIXED item_name column
+            const { data: stk } = await _supabase.from('inventory').select('*').order('item_name', { ascending: true });
             const stkTable = document.getElementById('stock-list');
             stkTable.innerHTML = '';
             if(stk) stk.forEach(i => {
                 const low = i.quantity < i.min_limit;
-                stkTable.innerHTML += `<tr class="border-b border-white/5"><td class="py-4 font-bold">${i.name}</td><td class="py-4 ${low?'text-red-500':''}">${i.quantity} ${i.unit}</td><td class="py-4"><span class="px-2 py-1 rounded-[5px] text-[8px] font-bold uppercase ${low?'bg-red-500/10 text-red-500':'bg-green-500/10 text-green-500'}">${low?'Low':'Ok'}</span></td></tr>`;
+                stkTable.innerHTML += `
+                    <tr class="border-b border-white/5">
+                        <td class="py-4 font-bold">${i.item_name}</td>
+                        <td class="py-4 ${low ? 'text-red-500' : ''}">${i.quantity} ${i.unit}</td>
+                        <td class="py-4">
+                            <span class="px-2 py-1 rounded-[5px] text-[8px] font-bold uppercase ${low ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}">
+                                ${low ? 'Low' : 'Ok'}
+                            </span>
+                        </td>
+                    </tr>`;
             });
         }
 
-        async function delStaff(id) { if(confirm("Delete?")) { await _supabase.from('staff').delete().eq('id', id); refreshData(); } }
+        async function delStaff(id) { 
+            if(confirm("Delete?")) { 
+                await _supabase.from('staff').delete().eq('id', id); 
+                refreshData(); 
+            } 
+        }
 
         refreshData();
         setInterval(refreshData, 30000);
