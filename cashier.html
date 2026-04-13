@@ -207,3 +207,45 @@
     </script>
 </body>
 </html>
+// Function to check for new orders from the customer site
+function checkOnlineOrders() {
+    let orders = JSON.parse(localStorage.getItem('onlineOrders') || '[]');
+    const incomingList = document.getElementById('incoming-list');
+    const badge = document.getElementById('online-badge');
+
+    if (orders.length > 0) {
+        badge.innerText = orders.length;
+        badge.classList.remove('hidden');
+        
+        incomingList.innerHTML = orders.map((order, index) => `
+            <div class="glass p-4 rounded-2xl border-l-4 border-red-500 flex justify-between items-center mb-2">
+                <div>
+                    <p class="text-[10px] font-bold text-red-400 uppercase">New Online Order #${order.id}</p>
+                    <p class="text-xs font-black">${order.items}</p>
+                    <p class="text-sm font-bold text-orange-500">${order.total} ETB</p>
+                </div>
+                <button onclick="acceptOrder(${index})" class="bg-green-500 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase">Confirm</button>
+            </div>
+        `).join('');
+    } else {
+        badge.classList.add('hidden');
+        incomingList.innerHTML = '<p class="text-center text-gray-500 py-10">No pending online orders...</p>';
+    }
+}
+
+// When cashier clicks "Confirm"
+function acceptOrder(index) {
+    let orders = JSON.parse(localStorage.getItem('onlineOrders') || '[]');
+    const order = orders[index];
+
+    // Move to Kitchen Queue and Add to Sales
+    processOrderToKitchen(order.id, order.items, order.total, "Online");
+
+    // Remove from pending list
+    orders.splice(index, 1);
+    localStorage.setItem('onlineOrders', JSON.stringify(orders));
+    checkOnlineOrders();
+}
+
+// Run the check every 2 seconds
+setInterval(checkOnlineOrders, 2000);
