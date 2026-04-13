@@ -3,116 +3,123 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carmel - Cashier Dashboard</title>
+    <title>Carmel Cashier</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { background: #000; color: white; font-family: 'Inter', sans-serif; }
+        .card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1.5rem; }
+        .input-field { background: #111; border: 1px solid rgba(255, 255, 255, 0.1); padding: 0.75rem; border-radius: 0.75rem; font-size: 0.875rem; width: 100%; }
+        .input-field:focus { border-color: #f97316; outline: none; }
+    </style>
 </head>
-<body class="bg-black text-white p-6">
-    <div class="max-w-5xl mx-auto">
-        <header class="flex justify-between items-center mb-10 border-b border-orange-500/20 pb-6">
-            <div>
-                <h1 class="text-3xl font-black text-orange-500 italic uppercase">CASHIER HUB</h1>
-                <p id="sales-today" class="text-xs font-bold text-green-400 mt-1 uppercase tracking-[0.2em]">Today: 0 Birr</p>
-            </div>
-            <div class="flex gap-4">
-                <button onclick="window.location.href='stock.html'" class="text-[10px] bg-white/5 border border-white/10 px-4 py-2 rounded-xl font-bold uppercase">Stock Control</button>
-                <button onclick="closeDay()" class="bg-red-600/20 text-red-500 border border-red-500/30 px-6 py-2 rounded-full font-bold text-xs uppercase tracking-tighter">Close Day</button>
-            </div>
+<body class="p-4">
+    <div class="max-w-4xl mx-auto">
+        <header class="flex justify-between items-center mb-8 border-b border-orange-500/20 pb-4">
+            <h1 class="text-3xl font-black italic text-orange-500 uppercase">CASHIER TERMINAL</h1>
+            <p id="staff-name-display" class="text-xs text-zinc-500 font-bold uppercase"></p>
         </header>
 
-        <div id="orders-list" class="grid gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="card p-6">
+                <h2 class="text-orange-500 font-black mb-4 uppercase text-xs italic">New Customer Order</h2>
+                <div class="space-y-4">
+                    <input id="item-search" type="text" placeholder="Menu Item Name..." class="input-field">
+                    <input id="order-qty" type="number" value="1" class="input-field">
+                    <button onclick="placeOrder()" class="w-full bg-white text-black font-black py-3 rounded-xl uppercase text-xs hover:bg-orange-500 hover:text-white transition-all">Submit Order</button>
+                </div>
             </div>
+
+            <div class="card p-6 border-orange-500/10 shadow-[0_0_20px_rgba(249,115,22,0.05)]">
+                <h2 class="text-orange-500 font-black mb-4 uppercase text-xs italic">Report Business Expense</h2>
+                <p class="text-[10px] text-zinc-500 mb-4">Used for buying beef, milk, sugar, etc.</p>
+                <div class="space-y-3">
+                    <input id="exp-item" type="text" placeholder="What did you buy? (e.g. Beef)" class="input-field">
+                    <div class="grid grid-cols-2 gap-2">
+                        <input id="exp-qty" type="number" placeholder="Qty" class="input-field">
+                        <input id="exp-cost" type="number" placeholder="Total Birr" class="input-field">
+                    </div>
+                    <button onclick="logPurchase()" class="w-full bg-orange-500 text-black font-black py-3 rounded-xl uppercase text-xs hover:bg-orange-400 transition-all">Report Spend</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
-        const SUPABASE_URL = "https://csdpoyqbkjljaqknunyv.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_GZ9zqNM1CPfdyaEhLY_pOg_Fs4CSfrC";
-        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const _supabase = supabase.createClient("https://csdpoyqbkjljaqknunyv.supabase.co", "sb_publishable_GZ9zqNM1CPfdyaEhLY_pOg_Fs4CSfrC");
+        
+        // Display logged in staff
+        const staffName = sessionStorage.getItem('staffName') || 'Guest';
+        document.getElementById('staff-name-display').innerText = `Staff: ${staffName}`;
 
-        // --- SECURITY CHECK ---
-        async function checkCashierAccess() {
-            const loggedInUser = sessionStorage.getItem('staffName');
-            
-            const { data, error } = await _supabase
-                .from('staff')
-                .select('*')
-                .eq('full_name', loggedInUser)
-                .maybeSingle();
+        // --- ORDER LOGIC ---
+        async function placeOrder() {
+            const menuName = document.getElementById('item-search').value;
+            const qty = document.getElementById('order-qty').value;
 
-            if (!data || error) {
-                alert("የካሸር መለያዎ ተሰርዟል! (Cashier account removed)");
-                sessionStorage.clear();
-                window.location.href = "Login.html";
-                return false;
+            // 1. Get Recipes to know what ingredients to subtract
+            const { data: recipes } = await _supabase.from('recipes').select('*').eq('menu_item_name', menuName);
+
+            if (!recipes || recipes.length === 0) {
+                alert("Item not found in recipes!");
+                return;
             }
-            return true;
-        }
 
-        async function loadPending() {
-            const hasAccess = await checkCashierAccess();
-            if (!hasAccess) return;
-
-            const { data } = await _supabase
-                .from('orders')
-                .select('*')
-                .eq('status', 'verified')
-                .order('created_at', { ascending: false });
-
-            if (data) {
-                const list = document.getElementById('orders-list');
-                list.innerHTML = '';
+            // 2. Subtract from Inventory
+            for (let r of recipes) {
+                const amountToSubtract = r.amount_used * qty;
                 
-                // Load Total Sales for the day
-                const { data: allSales } = await _supabase.from('orders').select('total_price').eq('status', 'done');
-                let total = 0;
-                if(allSales) allSales.forEach(s => total += s.total_price);
-                document.getElementById('sales-today').innerText = `Today: ${total} Birr`;
-
-                if (data.length === 0) {
-                    list.innerHTML = '<p class="text-center py-20 text-zinc-600 font-bold uppercase text-xs tracking-widest">ምንም የሚከፈል ትዕዛዝ የለም</p>';
+                // Fetch current stock
+                const { data: inv } = await _supabase.from('inventory').select('quantity').eq('item_name', r.inventory_item_name).single();
+                
+                if (inv) {
+                    await _supabase.from('inventory')
+                        .update({ quantity: inv.quantity - amountToSubtract })
+                        .eq('item_name', r.inventory_item_name);
                 }
+            }
 
-                data.forEach(order => {
-                    const div = document.createElement('div');
-                    div.className = "bg-zinc-900/50 p-6 rounded-[2.5rem] border border-white/5 flex justify-between items-center";
-                    div.innerHTML = `
-                        <div>
-                            <p class="text-lg font-black text-white uppercase tracking-tighter">${order.items}</p>
-                            <p class="text-xs text-orange-400 font-bold">${order.total_price} Birr • ${order.payment_method}</p>
-                        </div>
-                        <button onclick="finishOrder('${order.id}')" class="bg-green-600 hover:bg-green-500 px-8 py-3 rounded-2xl font-black transition-all active:scale-95">
-                            ተከፍሏል ✅
-                        </button>
-                    `;
-                    list.appendChild(div);
-                });
+            // 3. Create Order Record (Assuming 500 Birr for demo, you can adjust this)
+            await _supabase.from('orders').insert([{ 
+                item_name: menuName, 
+                quantity: qty, 
+                total_price: 500 * qty, 
+                status: 'done' 
+            }]);
+
+            alert("Order Completed & Inventory Updated!");
+        }
+
+        // --- EXPENSE LOGIC ---
+        async function logPurchase() {
+            const item = document.getElementById('exp-item').value;
+            const qty = document.getElementById('exp-qty').value;
+            const cost = document.getElementById('exp-cost').value;
+
+            if(!item || !qty || !cost) {
+                alert("Please fill out what you bought and the cost!");
+                return;
+            }
+
+            const { error } = await _supabase.from('expenses').insert([
+                { 
+                    item_name: item, 
+                    amount_spent: cost, 
+                    quantity_bought: qty, 
+                    unit: 'pcs/kg', 
+                    bought_by: staffName 
+                }
+            ]);
+
+            if (!error) {
+                alert(`Successfully logged ${item} expense!`);
+                document.getElementById('exp-item').value = '';
+                document.getElementById('exp-qty').value = '';
+                document.getElementById('exp-cost').value = '';
+            } else {
+                alert("Error: " + error.message);
             }
         }
-
-        async function finishOrder(id) {
-            const hasAccess = await checkCashierAccess();
-            if (!hasAccess) return;
-
-            await _supabase.from('orders').update({ status: 'done' }).eq('id', id);
-            loadPending();
-        }
-
-        async function closeDay() {
-            const code = prompt("Enter 2026 to clear daily sales:");
-            if(code === "2026") {
-                await _supabase.from('orders').delete().eq('status', 'done');
-                alert("Daily history cleared!");
-                loadPending();
-            }
-        }
-
-        // Real-time Update Listener
-        _supabase.channel('cashier-updates')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => loadPending())
-            .subscribe();
-
-        // Initial Load
-        loadPending();
     </script>
 </body>
 </html>
