@@ -9,7 +9,7 @@
     <style>
         body { background: #000; color: white; font-family: 'Inter', sans-serif; }
         .card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1.5rem; }
-        .input-field { background: #111; border: 1px solid rgba(255, 255, 255, 0.1); padding: 0.75rem; border-radius: 0.75rem; font-size: 0.875rem; width: 100%; }
+        .input-field { background: #111; border: 1px solid rgba(255, 255, 255, 0.1); padding: 0.75rem; border-radius: 0.75rem; font-size: 0.875rem; width: 100%; color: white; }
         .input-field:focus { border-color: #f97316; outline: none; }
     </style>
 </head>
@@ -32,14 +32,21 @@
 
             <div class="card p-6 border-orange-500/10 shadow-[0_0_20px_rgba(249,115,22,0.05)]">
                 <h2 class="text-orange-500 font-black mb-4 uppercase text-xs italic">Report Business Expense</h2>
-                <p class="text-[10px] text-zinc-500 mb-4">Used for buying beef, milk, sugar, etc.</p>
+                <p class="text-[10px] text-zinc-500 mb-4 text-center italic">Report supply purchases here</p>
                 <div class="space-y-3">
-                    <input id="exp-item" type="text" placeholder="What did you buy? (e.g. Beef)" class="input-field">
+                    <input id="exp-item" type="text" placeholder="Item Name (e.g. Beef)" class="input-field">
+                    
                     <div class="grid grid-cols-2 gap-2">
-                        <input id="exp-qty" type="number" placeholder="Qty" class="input-field">
-                        <input id="exp-cost" type="number" placeholder="Total Birr" class="input-field">
+                        <input id="exp-qty" type="number" oninput="calcTotal()" placeholder="Qty (kg/pcs)" class="input-field">
+                        <input id="exp-unit-price" type="number" oninput="calcTotal()" placeholder="Price of 1 kg/pcs" class="input-field">
                     </div>
-                    <button onclick="logPurchase()" class="w-full bg-orange-500 text-black font-black py-3 rounded-xl uppercase text-xs hover:bg-orange-400 transition-all">Report Spend</button>
+
+                    <div class="bg-orange-500/5 p-4 rounded-xl border border-orange-500/20">
+                        <p class="text-[10px] text-zinc-500 uppercase font-black">Total to pay:</p>
+                        <p id="total-display" class="text-xl font-black text-orange-500">0 Birr</p>
+                    </div>
+
+                    <button onclick="logPurchase()" class="w-full bg-orange-500 text-black font-black py-3 rounded-xl uppercase text-xs hover:bg-orange-400 transition-all">Submit Expense</button>
                 </div>
             </div>
         </div>
@@ -47,78 +54,70 @@
 
     <script>
         const _supabase = supabase.createClient("https://csdpoyqbkjljaqknunyv.supabase.co", "sb_publishable_GZ9zqNM1CPfdyaEhLY_pOg_Fs4CSfrC");
-        
-        // Display logged in staff
         const staffName = sessionStorage.getItem('staffName') || 'Guest';
         document.getElementById('staff-name-display').innerText = `Staff: ${staffName}`;
 
-        // --- ORDER LOGIC ---
-        async function placeOrder() {
-            const menuName = document.getElementById('item-search').value;
-            const qty = document.getElementById('order-qty').value;
-
-            // 1. Get Recipes to know what ingredients to subtract
-            const { data: recipes } = await _supabase.from('recipes').select('*').eq('menu_item_name', menuName);
-
-            if (!recipes || recipes.length === 0) {
-                alert("Item not found in recipes!");
-                return;
-            }
-
-            // 2. Subtract from Inventory
-            for (let r of recipes) {
-                const amountToSubtract = r.amount_used * qty;
-                
-                // Fetch current stock
-                const { data: inv } = await _supabase.from('inventory').select('quantity').eq('item_name', r.inventory_item_name).single();
-                
-                if (inv) {
-                    await _supabase.from('inventory')
-                        .update({ quantity: inv.quantity - amountToSubtract })
-                        .eq('item_name', r.inventory_item_name);
-                }
-            }
-
-            // 3. Create Order Record (Assuming 500 Birr for demo, you can adjust this)
-            await _supabase.from('orders').insert([{ 
-                item_name: menuName, 
-                quantity: qty, 
-                total_price: 500 * qty, 
-                status: 'done' 
-            }]);
-
-            alert("Order Completed & Inventory Updated!");
+        // Auto-calculate the total Birr for the cashier
+        function calcTotal() {
+            const qty = document.getElementById('exp-qty').value || 0;
+            const unitPrice = document.getElementById('exp-unit-price').value || 0;
+            const total = qty * unitPrice;
+            document.getElementById('total-display').innerText = `${total} Birr`;
+            return total;
         }
 
-        // --- EXPENSE LOGIC ---
         async function logPurchase() {
             const item = document.getElementById('exp-item').value;
             const qty = document.getElementById('exp-qty').value;
-            const cost = document.getElementById('exp-cost').value;
+            const unitPrice = document.getElementById('exp-unit-price').value;
+            const totalCost = calcTotal();
 
-            if(!item || !qty || !cost) {
-                alert("Please fill out what you bought and the cost!");
+            if(!item || !qty || !unitPrice) {
+                alert("Please fill all fields!");
                 return;
             }
 
             const { error } = await _supabase.from('expenses').insert([
                 { 
                     item_name: item, 
-                    amount_spent: cost, 
+                    amount_spent: totalCost, 
                     quantity_bought: qty, 
-                    unit: 'pcs/kg', 
+                    unit: 'kg/pcs', 
                     bought_by: staffName 
                 }
             ]);
 
             if (!error) {
-                alert(`Successfully logged ${item} expense!`);
+                alert(`Logged: ${qty} x ${item} @ ${unitPrice} Birr each.`);
                 document.getElementById('exp-item').value = '';
                 document.getElementById('exp-qty').value = '';
-                document.getElementById('exp-cost').value = '';
+                document.getElementById('exp-unit-price').value = '';
+                calcTotal();
             } else {
                 alert("Error: " + error.message);
             }
+        }
+
+        // --- ORDER LOGIC ---
+        async function placeOrder() {
+            const menuName = document.getElementById('item-search').value;
+            const qty = document.getElementById('order-qty').value;
+            const { data: recipes } = await _supabase.from('recipes').select('*').eq('menu_item_name', menuName);
+
+            if (!recipes || recipes.length === 0) {
+                alert("Item not found!");
+                return;
+            }
+
+            for (let r of recipes) {
+                const { data: inv } = await _supabase.from('inventory').select('quantity').eq('item_name', r.inventory_item_name).single();
+                if (inv) {
+                    await _supabase.from('inventory').update({ quantity: inv.quantity - (r.amount_used * qty) }).eq('item_name', r.inventory_item_name);
+                }
+            }
+
+            await _supabase.from('orders').insert([{ item_name: menuName, quantity: qty, total_price: 500 * qty, status: 'done' }]);
+            alert("Order Success!");
         }
     </script>
 </body>
