@@ -9,17 +9,27 @@
     <style>
         body { background: #000; color: white; font-family: 'Inter', sans-serif; }
         .card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 2rem; }
-        .status-badge { padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 900; text-transform: uppercase; }
+        .status-badge { padding: 4px 8px; border-radius: 6px; font-size: 8px; font-weight: 900; text-transform: uppercase; }
+        .filter-btn { font-size: 10px; font-weight: 900; padding: 4px 16px; border-radius: 9999px; border: 1px solid rgba(249, 115, 22, 0.2); transition: all 0.3s; }
+        .filter-active { background: #f97316; color: black; border-color: #f97316; }
     </style>
 </head>
 <body class="p-6">
     <div class="max-w-6xl mx-auto">
         <header class="flex justify-between items-center mb-12 border-b border-orange-500/20 pb-6">
-            <h1 class="text-4xl font-black italic text-orange-500 uppercase tracking-tighter">MANAGER HUB</h1>
+            <div>
+                <h1 class="text-4xl font-black italic text-orange-500 uppercase tracking-tighter leading-none">MANAGER HUB</h1>
+                <div class="flex gap-2 mt-4">
+                    <button onclick="setTimeFilter(1)" id="btn-1" class="filter-btn filter-active">1 DAY</button>
+                    <button onclick="setTimeFilter(7)" id="btn-7" class="filter-btn text-orange-500">7 DAYS</button>
+                    <button onclick="setTimeFilter(30)" id="btn-30" class="filter-btn text-orange-500">30 DAYS</button>
+                </div>
+            </div>
+            
             <div class="flex gap-8">
                 <div class="text-right">
                     <p id="revenue" class="text-2xl font-bold text-white">0 Birr</p>
-                    <p class="text-[10px] text-zinc-500 uppercase font-black">Gross Sales</p>
+                    <p id="sales-label" class="text-[10px] text-zinc-500 uppercase font-black">Today's Sales</p>
                 </div>
                 <div class="text-right">
                     <p id="total-expenses" class="text-2xl font-bold text-red-500">0 Birr</p>
@@ -40,7 +50,7 @@
                 </div>
                 
                 <div>
-                    <h2 class="text-xs font-black uppercase text-red-500/50 mb-4 ml-2">Recent Expenses</h2>
+                    <h2 class="text-xs font-black uppercase text-red-500/50 mb-4 ml-2">Recent Record</h2>
                     <div class="card p-6">
                         <div id="expense-list" class="space-y-4"></div>
                     </div>
@@ -67,22 +77,57 @@
 
     <script>
         const _supabase = supabase.createClient("https://csdpoyqbkjljaqknunyv.supabase.co", "sb_publishable_GZ9zqNM1CPfdyaEhLY_pOg_Fs4CSfrC");
+        
+        let daysFilter = 1;
+
+        function setTimeFilter(days) {
+            daysFilter = days;
+            // Update UI buttons
+            [1, 7, 30].forEach(d => {
+                const btn = document.getElementById(`btn-${d}`);
+                if(d === days) {
+                    btn.classList.add('filter-active');
+                    btn.classList.remove('text-orange-500');
+                } else {
+                    btn.classList.remove('filter-active');
+                    btn.classList.add('text-orange-500');
+                }
+            });
+            // Update Labels
+            const labelMap = { 1: "Today's Sales", 7: "Last 7 Days", 30: "Last 30 Days" };
+            document.getElementById('sales-label').innerText = labelMap[days];
+            refreshData();
+        }
 
         async function refreshData() {
-            // 1. Calculate Revenue (Sales)
-            const { data: rev } = await _supabase.from('orders').select('total_price').eq('status', 'done');
+            // Get date for filtering
+            const filterDate = new Date();
+            filterDate.setDate(filterDate.getDate() - (daysFilter - 1));
+            filterDate.setHours(0,0,0,0);
+            const isoDate = filterDate.toISOString();
+
+            // 1. Fetch Sales
+            const { data: rev } = await _supabase.from('orders')
+                .select('total_price')
+                .eq('status', 'done')
+                .gte('created_at', isoDate);
+            
             let totalSales = 0; if(rev) rev.forEach(o => totalSales += o.total_price);
             document.getElementById('revenue').innerText = `${totalSales} Birr`;
 
-            // 2. Calculate Expenses
-            const { data: expData } = await _supabase.from('expenses').select('*').order('created_at', { ascending: false });
+            // 2. Fetch Expenses
+            const { data: expData } = await _supabase.from('expenses')
+                .select('*')
+                .gte('created_at', isoDate)
+                .order('created_at', { ascending: false });
+
             let totalExp = 0; if(expData) expData.forEach(e => totalExp += e.amount_spent);
             document.getElementById('total-expenses').innerText = `${totalExp} Birr`;
 
-            // 3. Set Net Profit
+            // 3. Profit Math
             document.getElementById('net-profit').innerText = `${totalSales - totalExp} Birr`;
 
-            // 4. Load Recent Expenses List
+            // 4. Render Expenses (Last 5)
             const expDiv = document.getElementById('expense-list');
             expDiv.innerHTML = '';
             if(expData) expData.slice(0, 5).forEach(e => {
@@ -90,13 +135,13 @@
                     <div class="flex justify-between items-center border-b border-white/5 pb-2">
                         <div>
                             <p class="font-bold text-white text-sm">${e.item_name}</p>
-                            <p class="text-[9px] text-zinc-500 uppercase">${e.bought_by}</p>
+                            <p class="text-[9px] text-zinc-500 uppercase font-black">${e.bought_by}</p>
                         </div>
                         <p class="text-red-400 font-bold text-sm">-${e.amount_spent}</p>
                     </div>`;
             });
 
-            // 5. Load Staff
+            // 5. Render Staff
             const { data: stf } = await _supabase.from('staff').select('*');
             const stfDiv = document.getElementById('staff-list');
             stfDiv.innerHTML = '';
@@ -105,13 +150,13 @@
                     <div class="card p-4 flex justify-between items-center">
                         <div>
                             <p class="text-[9px] text-orange-500 uppercase font-black">${s.role}</p>
-                            <p class="font-bold">${s.full_name}</p>
+                            <p class="font-bold text-sm">${s.full_name}</p>
                         </div>
                         <button onclick="delStaff('${s.id}')" class="text-red-500 text-[10px] font-black hover:bg-red-500/10 p-2 rounded-lg">RESET</button>
                     </div>`;
             });
 
-            // 6. Load Stock (Inventory)
+            // 6. Render Inventory
             const { data: stk } = await _supabase.from('inventory').select('*').order('item_name', { ascending: true });
             const stkTable = document.getElementById('stock-list');
             stkTable.innerHTML = '';
@@ -130,9 +175,8 @@
             });
         }
 
-        async function delStaff(id) { if(confirm("Permanently remove this staff member?")) { await _supabase.from('staff').delete().eq('id', id); refreshData(); } }
+        async function delStaff(id) { if(confirm("Delete this staff member?")) { await _supabase.from('staff').delete().eq('id', id); refreshData(); } }
 
-        // Initial Load & Auto-Refresh every 30 seconds
         refreshData();
         setInterval(refreshData, 30000);
     </script>
