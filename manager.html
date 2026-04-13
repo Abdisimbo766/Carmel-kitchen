@@ -3,28 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carmel Manager</title>
+    <title>Carmel Manager Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { background: #000; color: white; font-family: 'Inter', sans-serif; }
         .card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 2rem; }
+        .status-badge { padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 900; text-transform: uppercase; }
     </style>
 </head>
 <body class="p-6">
     <div class="max-w-6xl mx-auto">
         <header class="flex justify-between items-center mb-12 border-b border-orange-500/20 pb-6">
-            <h1 class="text-4xl font-black italic text-orange-500 uppercase">MANAGER HUB</h1>
-            <div class="text-right">
-                <p id="revenue" class="text-2xl font-bold text-green-400">0 Birr</p>
-                <p class="text-[10px] text-zinc-500 uppercase">Revenue Today</p>
+            <h1 class="text-4xl font-black italic text-orange-500 uppercase tracking-tighter">MANAGER HUB</h1>
+            <div class="flex gap-8">
+                <div class="text-right">
+                    <p id="revenue" class="text-2xl font-bold text-white">0 Birr</p>
+                    <p class="text-[10px] text-zinc-500 uppercase font-black">Gross Sales</p>
+                </div>
+                <div class="text-right">
+                    <p id="total-expenses" class="text-2xl font-bold text-red-500">0 Birr</p>
+                    <p class="text-[10px] text-zinc-500 uppercase font-black">Expenses</p>
+                </div>
+                <div class="text-right border-l border-white/10 pl-8">
+                    <p id="net-profit" class="text-2xl font-black text-green-400">0 Birr</p>
+                    <p class="text-[10px] text-zinc-500 uppercase font-black">Net Profit</p>
+                </div>
             </div>
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
-            <div class="space-y-4">
-                <h2 class="text-xs font-black uppercase text-orange-500/50 ml-2">Staff Control</h2>
-                <div id="staff-list" class="space-y-4"></div>
+            <div class="space-y-10">
+                <div>
+                    <h2 class="text-xs font-black uppercase text-orange-500/50 mb-4 ml-2">Staff Control</h2>
+                    <div id="staff-list" class="space-y-4"></div>
+                </div>
+                
+                <div>
+                    <h2 class="text-xs font-black uppercase text-red-500/50 mb-4 ml-2">Recent Expenses</h2>
+                    <div class="card p-6">
+                        <div id="expense-list" class="space-y-4"></div>
+                    </div>
+                </div>
             </div>
 
             <div class="lg:col-span-2">
@@ -48,45 +68,61 @@
     <script>
         const _supabase = supabase.createClient("https://csdpoyqbkjljaqknunyv.supabase.co", "sb_publishable_GZ9zqNM1CPfdyaEhLY_pOg_Fs4CSfrC");
 
-        async function checkSecurity() {
-            const name = sessionStorage.getItem('staffName');
-            const { data } = await _supabase.from('staff').select('*').eq('full_name', name).maybeSingle();
-            if (!data) {
-                alert("Account Removed!");
-                sessionStorage.clear();
-                window.location.href = "Login.html";
-            }
-        }
-
         async function refreshData() {
-            await checkSecurity();
-            
-            // Load Revenue
+            // 1. Calculate Revenue (Sales)
             const { data: rev } = await _supabase.from('orders').select('total_price').eq('status', 'done');
-            let total = 0; 
-            if(rev) rev.forEach(o => total += o.total_price);
-            document.getElementById('revenue').innerText = `${total} Birr`;
+            let totalSales = 0; if(rev) rev.forEach(o => totalSales += o.total_price);
+            document.getElementById('revenue').innerText = `${totalSales} Birr`;
 
-            // Load Staff
+            // 2. Calculate Expenses
+            const { data: expData } = await _supabase.from('expenses').select('*').order('created_at', { ascending: false });
+            let totalExp = 0; if(expData) expData.forEach(e => totalExp += e.amount_spent);
+            document.getElementById('total-expenses').innerText = `${totalExp} Birr`;
+
+            // 3. Set Net Profit
+            document.getElementById('net-profit').innerText = `${totalSales - totalExp} Birr`;
+
+            // 4. Load Recent Expenses List
+            const expDiv = document.getElementById('expense-list');
+            expDiv.innerHTML = '';
+            if(expData) expData.slice(0, 5).forEach(e => {
+                expDiv.innerHTML += `
+                    <div class="flex justify-between items-center border-b border-white/5 pb-2">
+                        <div>
+                            <p class="font-bold text-white text-sm">${e.item_name}</p>
+                            <p class="text-[9px] text-zinc-500 uppercase">${e.bought_by}</p>
+                        </div>
+                        <p class="text-red-400 font-bold text-sm">-${e.amount_spent}</p>
+                    </div>`;
+            });
+
+            // 5. Load Staff
             const { data: stf } = await _supabase.from('staff').select('*');
             const stfDiv = document.getElementById('staff-list');
             stfDiv.innerHTML = '';
             if(stf) stf.forEach(s => {
-                stfDiv.innerHTML += `<div class="card p-4 flex justify-between"><div><p class="text-[9px] text-orange-500 uppercase font-bold">${s.role}</p><p class="font-bold">${s.full_name}</p></div><button onclick="delStaff('${s.id}')" class="text-red-500 text-[10px] font-bold">RESET</button></div>`;
+                stfDiv.innerHTML += `
+                    <div class="card p-4 flex justify-between items-center">
+                        <div>
+                            <p class="text-[9px] text-orange-500 uppercase font-black">${s.role}</p>
+                            <p class="font-bold">${s.full_name}</p>
+                        </div>
+                        <button onclick="delStaff('${s.id}')" class="text-red-500 text-[10px] font-black hover:bg-red-500/10 p-2 rounded-lg">RESET</button>
+                    </div>`;
             });
 
-            // Load Stock - FIXED item_name column
+            // 6. Load Stock (Inventory)
             const { data: stk } = await _supabase.from('inventory').select('*').order('item_name', { ascending: true });
             const stkTable = document.getElementById('stock-list');
             stkTable.innerHTML = '';
             if(stk) stk.forEach(i => {
-                const low = i.quantity < i.min_limit;
+                const low = i.quantity <= i.min_limit;
                 stkTable.innerHTML += `
-                    <tr class="border-b border-white/5">
-                        <td class="py-4 font-bold">${i.item_name}</td>
-                        <td class="py-4 ${low ? 'text-red-500' : ''}">${i.quantity} ${i.unit}</td>
+                    <tr class="border-b border-white/5 hover:bg-white/5 transition-all">
+                        <td class="py-4 font-bold text-zinc-200">${i.item_name}</td>
+                        <td class="py-4 ${low ? 'text-red-500' : 'text-white'} font-medium">${i.quantity} ${i.unit}</td>
                         <td class="py-4">
-                            <span class="px-2 py-1 rounded-[5px] text-[8px] font-bold uppercase ${low ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}">
+                            <span class="${low ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'} status-badge">
                                 ${low ? 'Low' : 'Ok'}
                             </span>
                         </td>
@@ -94,13 +130,9 @@
             });
         }
 
-        async function delStaff(id) { 
-            if(confirm("Delete?")) { 
-                await _supabase.from('staff').delete().eq('id', id); 
-                refreshData(); 
-            } 
-        }
+        async function delStaff(id) { if(confirm("Permanently remove this staff member?")) { await _supabase.from('staff').delete().eq('id', id); refreshData(); } }
 
+        // Initial Load & Auto-Refresh every 30 seconds
         refreshData();
         setInterval(refreshData, 30000);
     </script>
