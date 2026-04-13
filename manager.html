@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carmel Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { background: #000; color: white; font-family: 'Inter', sans-serif; }
+        .card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 2rem; }
+    </style>
+</head>
+<body class="p-6">
+    <div class="max-w-6xl mx-auto">
+        <header class="flex justify-between items-center mb-12 border-b border-orange-500/20 pb-6">
+            <h1 class="text-4xl font-black italic text-orange-500 uppercase">MANAGER HUB</h1>
+            <div class="text-right">
+                <p id="revenue" class="text-2xl font-bold text-green-400">0 Birr</p>
+                <p class="text-[10px] text-zinc-500 uppercase">Revenue Today</p>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+            <div class="space-y-4">
+                <h2 class="text-xs font-black uppercase text-orange-500/50 ml-2">Staff Control</h2>
+                <div id="staff-list" class="space-y-4"></div>
+            </div>
+
+            <div class="lg:col-span-2">
+                <h2 class="text-xs font-black uppercase text-orange-500/50 mb-4 ml-2">Stock Inventory</h2>
+                <div class="card p-8 overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="text-[10px] text-zinc-500 border-b border-white/10 uppercase">
+                                <th class="pb-4">Item</th>
+                                <th class="pb-4">Qty</th>
+                                <th class="pb-4">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stock-list" class="text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const _supabase = supabase.createClient("https://csdpoyqbkjljaqknunyv.supabase.co", "sb_publishable_GZ9zqNM1CPfdyaEhLY_pOg_Fs4CSfrC");
+
+        async function checkSecurity() {
+            const name = sessionStorage.getItem('staffName');
+            const { data } = await _supabase.from('staff').select('*').eq('full_name', name).maybeSingle();
+            if (!data) {
+                alert("Account Removed!");
+                sessionStorage.clear();
+                window.location.href = "Login.html";
+            }
+        }
+
+        async function refreshData() {
+            await checkSecurity();
+            // Load Revenue
+            const { data: rev } = await _supabase.from('orders').select('total_price').eq('status', 'done');
+            let total = 0; if(rev) rev.forEach(o => total += o.total_price);
+            document.getElementById('revenue').innerText = `${total} Birr`;
+
+            // Load Staff
+            const { data: stf } = await _supabase.from('staff').select('*');
+            const stfDiv = document.getElementById('staff-list');
+            stfDiv.innerHTML = '';
+            if(stf) stf.forEach(s => {
+                stfDiv.innerHTML += `<div class="card p-4 flex justify-between"><div><p class="text-[9px] text-orange-500 uppercase font-bold">${s.role}</p><p class="font-bold">${s.full_name}</p></div><button onclick="delStaff('${s.id}')" class="text-red-500 text-[10px] font-bold">RESET</button></div>`;
+            });
+
+            // Load Stock
+            const { data: stk } = await _supabase.from('inventory').select('*');
+            const stkTable = document.getElementById('stock-list');
+            stkTable.innerHTML = '';
+            if(stk) stk.forEach(i => {
+                const low = i.quantity < i.min_limit;
+                stkTable.innerHTML += `<tr class="border-b border-white/5"><td class="py-4 font-bold">${i.name}</td><td class="py-4 ${low?'text-red-500':''}">${i.quantity} ${i.unit}</td><td class="py-4"><span class="px-2 py-1 rounded-[5px] text-[8px] font-bold uppercase ${low?'bg-red-500/10 text-red-500':'bg-green-500/10 text-green-500'}">${low?'Low':'Ok'}</span></td></tr>`;
+            });
+        }
+
+        async function delStaff(id) { if(confirm("Delete?")) { await _supabase.from('staff').delete().eq('id', id); refreshData(); } }
+
+        refreshData();
+        setInterval(refreshData, 30000);
+    </script>
+</body>
+</html>
