@@ -90,7 +90,7 @@
         const SUPABASE_KEY = "sb_publishable_GZ9zqNM1CPfdyaEhLY_pOg_Fs4CSfrC";
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // --------- EXPENSES/PURCHASING FEATURE (with error details) ---------
+        // --------- EXPENSES/PURCHASING FEATURE (step-by-step fixed) ---------
         document.addEventListener('DOMContentLoaded', function () {
             async function loadInventoryItems() {
                 const sel = document.getElementById('purchase-item');
@@ -127,6 +127,7 @@
             ['purchase-qty', 'purchase-price'].forEach(id => {
                 document.getElementById(id).addEventListener('input', updateTotal);
             });
+            document.getElementById('purchase-item').addEventListener('change', updateTotal);
 
             function updateTotal() {
                 const sel = document.getElementById('purchase-item');
@@ -144,7 +145,6 @@
                 }
             }
 
-            // ---- UPDATED SUBMIT HANDLER WITH ERROR DETAILS ----
             document.getElementById('purchase-form').addEventListener('submit', async function(e) {
                 e.preventDefault();
                 const sel = document.getElementById('purchase-item');
@@ -169,7 +169,7 @@
                             item_id: null,
                             item_name,
                             amount_spent: totalPrice,
-                            qty: null,
+                            quantity_bought: null,
                             unit_price: pricePerUnit,
                             description: '(Other, non-stocked expense)',
                             bought_by: cashierName
@@ -201,7 +201,7 @@
                         item_id,
                         item_name,
                         amount_spent: totalPrice,
-                        qty,
+                        quantity_bought: qty,
                         unit_price: pricePerUnit,
                         description: 'Purchased for stock',
                         bought_by: cashierName
@@ -230,10 +230,9 @@
                     document.getElementById('purchasing-result').className = 'mt-3 font-bold text-red-500';
                 }
             });
-            // ---- END HANDLER ----
         });
 
-        // ... The rest of your original script (your orders and kitchen logic) continues below ...
+        // ... The rest of your unchanged original script: orders, ready tray, etc below ...
         let isDetailsOpen = false;
         const readySound = new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3');
         function cleanValue(val) { return (val && val !== "EMPTY" && val !== "null") ? val : ""; }
