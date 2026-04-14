@@ -3,24 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carmel Cashier</title>
+    <title>Carmel - Cashier Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { background: #070A0E; color: #fff; font-family: 'Inter', sans-serif; }
-        .card { background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255,255,255,0.07); border-radius: 1.5rem; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.1); border-radius: 10px; }
     </style>
 </head>
-<body class="p-6">
-    <div class="max-w-2xl mx-auto">
-        <header class="mb-10">
-            <h1 class="text-4xl font-black italic text-orange-400 uppercase tracking-tighter mb-1">Cashier</h1>
-            <p class="text-orange-300 text-sm">Daily operations panel</p>
-        </header>
+<body class="bg-slate-50 p-4 pb-24">
 
-        <!-- Daily Expense (Purchasing) Section -->
-        <div class="card p-6 my-8 shadow-lg">
-            <h2 class="text-xl font-black text-orange-400 mb-4">Daily Expense (Purchasing)</h2>
+    <div id="ready-tray" class="max-w-4xl mx-auto mb-6 flex flex-wrap gap-3">
+        </div>
+
+    <div class="max-w-4xl mx-auto">
+
+        <!-- ============== NEW EXPENSE SECTION (Purchasing) ============== -->
+        <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-orange-100 mb-8">
+            <h2 class="text-orange-500 text-lg font-black mb-4">Daily Expense (Purchasing)</h2>
             <form id="purchase-form" class="flex flex-col space-y-4">
                 <select id="purchase-item" class="p-2 rounded bg-zinc-800 text-white" required>
                     <option value="">-- Select Item --</option>
@@ -36,153 +36,349 @@
             </form>
             <div id="purchasing-result" class="mt-3 font-bold"></div>
         </div>
+        <!-- ============== END NEW EXPENSE SECTION ============== -->
 
-        <!-- You can add your other cashier HTML sections below as needed -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200">
+                <h2 class="text-slate-400 text-[10px] uppercase font-black tracking-widest mb-1">የዛሬ ጠቅላላ ሽያጭ</h2>
+                <div class="flex justify-between items-end">
+                    <p id="daily-total" class="text-4xl font-black text-green-600">0 Birr</p>
+                    <button onclick="openSummary()" class="text-[10px] bg-slate-100 px-3 py-2 rounded-xl font-bold hover:bg-slate-200">ሪፖርት አሳይ 📊</button>
+                </div>
+            </div>
+            
+            <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200">
+                <h2 class="text-slate-400 text-[10px] uppercase font-black tracking-widest mb-3">የተሸጡ ምግቦች ዝርዝር</h2>
+                <div id="item-stats-list" class="flex flex-wrap gap-2 max-h-[100px] overflow-y-auto custom-scrollbar">
+                    <p class="text-slate-400 text-xs italic">ሽያጭ የለም...</p>
+                </div>
+            </div>
+        </div>
 
+        <h1 class="text-xl font-black text-slate-800 mb-6 flex items-center gap-2">
+            <span>🔔 በመጠባበቅ ላይ ያሉ ትዕዛዞች</span>
+            <span id="pending-badge" class="bg-orange-500 text-white text-[10px] px-2 py-0.5 rounded-full">0</span>
+        </h1>
+
+        <div id="pending-list" class="space-y-4"></div>
     </div>
-    
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <div id="summaryModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 w-full max-w-md rounded-[3rem] p-8 border border-white/10 shadow-2xl">
+            <h2 class="text-orange-500 font-black text-center text-xl mb-6">የዛሬ የሽያጭ ማጠቃለያ</h2>
+            
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="bg-white/5 p-4 rounded-3xl text-center">
+                    <p class="text-gray-400 text-[10px] uppercase mb-1">ጠቅላላ ሽያጭ</p>
+                    <p id="total-sales" class="text-xl font-black text-green-400">0 ETB</p>
+                </div>
+                <div class="bg-white/5 p-4 rounded-3xl text-center">
+                    <p class="text-gray-400 text-[10px] uppercase mb-1">የትዕዛዝ ብዛት</p>
+                    <p id="order-count" class="text-xl font-black text-white">0</p>
+                </div>
+            </div>
+
+            <button id="details-btn" onclick="toggleDetails()" class="w-full py-3 text-gray-400 font-bold text-sm">ዝርዝር አሳይ ⬇️</button>
+            
+            <div id="details-section" class="hidden mb-6 max-h-60 overflow-y-auto custom-scrollbar pr-2">
+                <div id="sales-items-list" class="space-y-2"></div>
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="closeSummary()" class="flex-1 bg-white/10 text-white py-4 rounded-2xl font-bold">ዝጋ</button>
+                <button onclick="adminVerifyClose()" class="flex-1 bg-orange-600 text-white py-4 rounded-2xl font-black shadow-lg shadow-orange-900/20">ሂሳብ ዝጋ & አውርድ</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-    // Replace with your own Supabase URL and public anon key!
-    const _supabase = supabase.createClient("https://csdpoyqbkjljaqknunyv.supabase.co", "sb_publishable_GZ9zqNM1CPfdyaEhLY_pOg_Fs4CSfrC");
+        // ------ Supabase connection ------
+        const SUPABASE_URL = "https://icubeupnkfulidmtiqsz.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImljdWJldXBua2Z1bGlkbXRpcXN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyOTg5MTAsImV4cCI6MjA4ODg3NDkxMH0.-sRfDPpsTh5ohKUmG460xvlS0RW6jYg8SsYGDDI7P-k";
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // Load inventory for the dropdown, add "Other"
-    async function loadInventoryItems() {
-        const { data, error } = await _supabase.from('inventory').select('*');
-        const sel = document.getElementById('purchase-item');
-        sel.innerHTML = `<option value="">-- Select Item --</option>`;
-        if (data) {
-            data.forEach(item => {
-                sel.innerHTML += `<option value="${item.id}" data-unit="${item.unit}">${item.item_name}</option>`;
-            });
+        // --------- EXPENSES/PURCHASING FEATURE (NEW) ---------
+        async function loadInventoryItems() {
+            const { data, error } = await supabaseClient.from('inventory').select('*');
+            const sel = document.getElementById('purchase-item');
+            sel.innerHTML = `<option value="">-- Select Item --</option>`;
+            if (data) {
+                data.forEach(item => {
+                    sel.innerHTML += `<option value="${item.id}" data-unit="${item.unit}">${item.item_name}</option>`;
+                });
+            }
+            sel.innerHTML += `<option value="other" data-unit="">Other (Write Expense Manually)</option>`;
         }
-        sel.innerHTML += `<option value="other" data-unit="">Other (Write Expense Manually)</option>`;
-    }
-    loadInventoryItems();
+        loadInventoryItems();
 
-    // Show/hide fields & auto-fill unit
-    document.getElementById('purchase-item').addEventListener('change', function() {
-        const sel = this;
-        const unit = sel.options[sel.selectedIndex].getAttribute('data-unit') || '';
-        document.getElementById('purchase-unit').value = unit;
-        if(sel.value === 'other') {
-            document.getElementById('purchase-desc').classList.remove('hidden');
-            document.getElementById('purchase-qty').disabled = true;
-            document.getElementById('purchase-qty').value = '';
-            document.getElementById('purchase-unit').value = '';
-        } else {
-            document.getElementById('purchase-desc').classList.add('hidden');
-            document.getElementById('purchase-qty').disabled = false;
+        document.getElementById('purchase-item').addEventListener('change', function() {
+            const sel = this;
+            const unit = sel.options[sel.selectedIndex].getAttribute('data-unit') || '';
+            document.getElementById('purchase-unit').value = unit;
+            if(sel.value === 'other') {
+                document.getElementById('purchase-desc').classList.remove('hidden');
+                document.getElementById('purchase-qty').disabled = true;
+                document.getElementById('purchase-qty').value = '';
+                document.getElementById('purchase-unit').value = '';
+            } else {
+                document.getElementById('purchase-desc').classList.add('hidden');
+                document.getElementById('purchase-qty').disabled = false;
+            }
+            updateTotal();
+        });
+
+        ['purchase-qty', 'purchase-price'].forEach(id => {
+          document.getElementById(id).addEventListener('input', updateTotal);
+        });
+        function updateTotal() {
+          const sel = document.getElementById('purchase-item');
+          if(sel.value === 'other') {
+            const price = Number(document.getElementById('purchase-price').value);
+            document.getElementById('purchase-total').value = price > 0 ? price : '';
+            return;
+          }
+          const qty = Number(document.getElementById('purchase-qty').value);
+          const price = Number(document.getElementById('purchase-price').value);
+          if (qty > 0 && price > 0) {
+            document.getElementById('purchase-total').value = qty * price;
+          } else {
+            document.getElementById('purchase-total').value = '';
+          }
         }
-        updateTotal();
-    });
 
-    // Total price auto calc
-    ['purchase-qty', 'purchase-price'].forEach(id => {
-      document.getElementById(id).addEventListener('input', updateTotal);
-    });
-    function updateTotal() {
-      const sel = document.getElementById('purchase-item');
-      if(sel.value === 'other') {
-        // No qty for other
-        const price = Number(document.getElementById('purchase-price').value);
-        document.getElementById('purchase-total').value = price > 0 ? price : '';
-        return;
-      }
-      const qty = Number(document.getElementById('purchase-qty').value);
-      const price = Number(document.getElementById('purchase-price').value);
-      if (qty > 0 && price > 0) {
-        document.getElementById('purchase-total').value = qty * price;
-      } else {
-        document.getElementById('purchase-total').value = '';
-      }
-    }
+        document.getElementById('purchase-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const sel = document.getElementById('purchase-item');
+            const item_id = sel.value;
+            let item_name = sel.options[sel.selectedIndex].textContent;
+            const qty = Number(document.getElementById('purchase-qty').value);
+            const pricePerUnit = Number(document.getElementById('purchase-price').value);
+            const totalPrice = Number(document.getElementById('purchase-total').value);
+            const cashierName = "Cashier"; // Set dynamically if you have logins
+            const description = document.getElementById('purchase-desc').value || '';
 
-    // Handle submit
-    document.getElementById('purchase-form').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const sel = document.getElementById('purchase-item');
-        const item_id = sel.value;
-        let item_name = sel.options[sel.selectedIndex].textContent;
-        const qty = Number(document.getElementById('purchase-qty').value);
-        const pricePerUnit = Number(document.getElementById('purchase-price').value);
-        const totalPrice = Number(document.getElementById('purchase-total').value);
-        const cashierName = "Cashier"; // Update to dynamic if needed
-        const description = document.getElementById('purchase-desc').value || '';
+            // "Other" logic
+            if (item_id === 'other') {
+                if (!description || totalPrice < 1 || pricePerUnit < 1) {
+                    document.getElementById('purchasing-result').innerText = 'Please fill out description and prices.';
+                    document.getElementById('purchasing-result').className = 'mt-3 font-bold text-red-500';
+                    return;
+                }
+                item_name = description;
+                const { error: expenseError } = await supabaseClient.from('expenses').insert([
+                    {
+                        item_id: null,
+                        item_name,
+                        amount_spent: totalPrice,
+                        qty: null,
+                        unit_price: pricePerUnit,
+                        description: '(Other, non-stocked expense)',
+                        bought_by: cashierName
+                    }
+                ]);
+                if(!expenseError){
+                    document.getElementById('purchasing-result').innerText = 'Expense Added!';
+                    document.getElementById('purchasing-result').className = 'mt-3 font-bold text-green-400';
+                    loadInventoryItems();
+                    this.reset();
+                    document.getElementById('purchase-desc').classList.add('hidden');
+                    document.getElementById('purchase-unit').value = '';
+                    document.getElementById('purchase-total').value = '';
+                } else {
+                    document.getElementById('purchasing-result').innerText = 'Something went wrong!';
+                    document.getElementById('purchasing-result').className = 'mt-3 font-bold text-red-500';
+                }
+                return;
+            }
 
-        // "Other" logic
-        if (item_id === 'other') {
-            if (!description || totalPrice < 1 || pricePerUnit < 1) {
-                document.getElementById('purchasing-result').innerText = 'Please fill out description and prices.';
+            if(!item_id || qty < 1 || pricePerUnit < 1) {
+                document.getElementById('purchasing-result').innerText = 'Please fill all required fields.';
                 document.getElementById('purchasing-result').className = 'mt-3 font-bold text-red-500';
                 return;
             }
-            item_name = description;
-            // Add expense only, skip inventory
-            const { error: expenseError } = await _supabase.from('expenses').insert([
+
+            const { error: expenseError } = await supabaseClient.from('expenses').insert([
                 {
-                    item_id: null,
+                    item_id,
                     item_name,
                     amount_spent: totalPrice,
-                    qty: null,
+                    qty,
                     unit_price: pricePerUnit,
-                    description: '(Other, non-stocked expense)',
+                    description: 'Purchased for stock',
                     bought_by: cashierName
                 }
             ]);
-            if(!expenseError){
-                document.getElementById('purchasing-result').innerText = 'Expense Added!';
+            const { data: existingItem, error: invErr } = await supabaseClient.from('inventory').select('*').eq('id', item_id).single();
+            let newQty = (existingItem?.quantity || 0) + qty;
+            const { error: updateErr } = await supabaseClient.from('inventory').update({ quantity: newQty }).eq('id', item_id);
+
+            if(!expenseError && !updateErr){
+                document.getElementById('purchasing-result').innerText = 'Expense Added, Stock Updated!';
                 document.getElementById('purchasing-result').className = 'mt-3 font-bold text-green-400';
                 loadInventoryItems();
                 this.reset();
-                document.getElementById('purchase-desc').classList.add('hidden');
                 document.getElementById('purchase-unit').value = '';
                 document.getElementById('purchase-total').value = '';
             } else {
                 document.getElementById('purchasing-result').innerText = 'Something went wrong!';
                 document.getElementById('purchasing-result').className = 'mt-3 font-bold text-red-500';
             }
-            return;
-        }
+        });
 
-        // Normal item (existing logic)
-        if(!item_id || qty < 1 || pricePerUnit < 1) {
-            document.getElementById('purchasing-result').innerText = 'Please fill all required fields.';
-            document.getElementById('purchasing-result').className = 'mt-3 font-bold text-red-500';
-            return;
-        }
+        // ========== REST OF YOUR ORIGINAL CODE CONTINUES (ORDERS, SUMMARY, ETC) ==========
 
-        // 1. Add expense to expenses table
-        const { error: expenseError } = await _supabase.from('expenses').insert([
-            {
-                item_id,
-                item_name,
-                amount_spent: totalPrice,
-                qty,
-                unit_price: pricePerUnit,
-                description: 'Purchased for stock',
-                bought_by: cashierName
+        let isDetailsOpen = false;
+        const readySound = new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3');
+        function cleanValue(val) { return (val && val !== "EMPTY" && val !== "null") ? val : ""; }
+        function updateSalesUI() {
+            const today = new Date().toLocaleDateString();
+            const data = JSON.parse(localStorage.getItem('carmel_daily_log')) || {};
+            const stats = data[today] || { total: 0, itemsSold: {} };
+            document.getElementById('daily-total').innerText = (stats.total || 0) + " Birr";
+            const listContainer = document.getElementById('item-stats-list');
+            if (stats.itemsSold && Object.keys(stats.itemsSold).length > 0) {
+                listContainer.innerHTML = Object.entries(stats.itemsSold).map(([name, qty]) => `
+                    <div class="bg-slate-100 px-3 py-1 rounded-full flex items-center gap-2 border border-slate-200">
+                        <span class="text-[11px] font-bold text-slate-700">${name}</span>
+                        <span class="bg-orange-600 text-white text-[9px] px-1.5 rounded-full font-black">${qty}</span>
+                    </div>`).join('');
             }
-        ]);
-
-        // 2. Update inventory (add qty to stock)
-        const { data: existingItem, error: invErr } = await _supabase.from('inventory').select('*').eq('id', item_id).single();
-        let newQty = (existingItem?.quantity || 0) + qty;
-        const { error: updateErr } = await _supabase.from('inventory').update({ quantity: newQty }).eq('id', item_id);
-
-        // UI Feedback
-        if(!expenseError && !updateErr){
-            document.getElementById('purchasing-result').innerText = 'Expense Added, Stock Updated!';
-            document.getElementById('purchasing-result').className = 'mt-3 font-bold text-green-400';
-            loadInventoryItems();
-            this.reset();
-            document.getElementById('purchase-unit').value = '';
-            document.getElementById('purchase-total').value = '';
-        } else {
-            document.getElementById('purchasing-result').innerText = 'Something went wrong!';
-            document.getElementById('purchasing-result').className = 'mt-3 font-bold text-red-500';
         }
-    });
+        async function openSummary() {
+            document.getElementById('summaryModal').classList.remove('hidden');
+            const today = new Date(); today.setHours(0,0,0,0);
+            const { data } = await supabaseClient.from('orders').select('total_price').gte('created_at', today.toISOString()).in('status', ['verified', 'ready', 'done', 'pending']); 
+            if (data) {
+                let total = data.reduce((acc, curr) => acc + parseFloat(curr.total_price || 0), 0);
+                document.getElementById('total-sales').innerText = total + " ETB";
+                document.getElementById('order-count').innerText = data.length;
+            }
+        }
+        function closeSummary() {
+            document.getElementById('summaryModal').classList.add('hidden');
+            document.getElementById('details-section').classList.add('hidden');
+            document.getElementById('details-btn').innerText = "ዝርዝር አሳይ ⬇️";
+            isDetailsOpen = false;
+        }
+        async function toggleDetails() {
+            const listContainer = document.getElementById('sales-items-list');
+            const btn = document.getElementById('details-btn');
+            if (!isDetailsOpen) {
+                const today = new Date(); today.setHours(0,0,0,0);
+                const { data } = await supabaseClient.from('orders').select('food_list, drink_list, items, total_price, queue_no').gte('created_at', today.toISOString()).in('status', ['verified', 'ready', 'done', 'pending']); 
+                listContainer.innerHTML = '';
+                if (data) {
+                    data.forEach(order => {
+                        let parts = [cleanValue(order.food_list), cleanValue(order.drink_list), cleanValue(order.items)].filter(x => x !== "");
+                        let combined = parts.join(", ") || "No Data";
+                        listContainer.innerHTML += `
+                            <div class="flex justify-between bg-white/5 p-2 rounded-lg border border-white/5 mb-2">
+                                <span class="text-orange-400 font-bold">#${order.queue_no}</span>
+                                <span class="text-white flex-1 px-2 truncate text-[11px]">${combined}</span>
+                                <span class="text-green-400 font-bold text-xs">${order.total_price}</span>
+                            </div>`;
+                    });
+                }
+                document.getElementById('details-section').classList.remove('hidden');
+                btn.innerText = "ዝርዝር ደብቅ ⬆️";
+                isDetailsOpen = true;
+            } else {
+                document.getElementById('details-section').classList.add('hidden');
+                btn.innerText = "ዝርዝር አሳይ ⬇️";
+                isDetailsOpen = false;
+            }
+        }
+        async function verifyOrder(orderId, price, fList, dList, iList) {
+            const { error } = await supabaseClient.from('orders').update({ status: 'verified' }).eq('id', orderId);
+            if (!error) {
+                const today = new Date().toLocaleDateString();
+                let dailyLog = JSON.parse(localStorage.getItem('carmel_daily_log')) || {};
+                if (!dailyLog[today]) dailyLog[today] = { total: 0, itemsSold: {} };
+                dailyLog[today].total += parseFloat(price);
+                [fList, dList, iList].forEach(list => {
+                    let cleaned = cleanValue(list);
+                    if (cleaned) {
+                        cleaned.split(', ').forEach(name => {
+                            if(name) dailyLog[today].itemsSold[name] = (dailyLog[today].itemsSold[name] || 0) + 1;
+                        });
+                    }
+                });
+                localStorage.setItem('carmel_daily_log', JSON.stringify(dailyLog));
+                loadOrders();
+            }
+        }
+        async function adminVerifyClose() {
+            const adminPass = prompt("ሂሳብ ለመዝጋት የባለቤትነት ሚስጥር ቁጥር ያስገቡ፦");
+            if (adminPass === "BOSS2026") await closeDayAccount();
+            else if (adminPass !== null) alert("የተሳሳተ የባለቤትነት ቁጥር ነው!");
+        }
+        async function closeDayAccount() {
+            if (!confirm("የዛሬውን ሂሳብ ዘግተው ሽያጩን በፋይል (Excel) ማውረድ ይፈልጋሉ?")) return;
+            const today = new Date(); today.setHours(0,0,0,0);
+            const { data: salesData } = await supabaseClient.from('orders').select('queue_no, food_list, drink_list, items, total_price, payment_method, created_at').gte('created_at', today.toISOString()).neq('status', 'cancelled');
+            if (!salesData || salesData.length === 0) return alert("ዳታ አልተገኘም!");
+            await supabaseClient.from('orders').update({ status: 'archived' }).gte('created_at', today.toISOString()).in('status', ['verified', 'ready', 'done', 'pending']);
+            let csvContent = "\uFEFFተራ ቁጥር,ትዕዛዝ,ዋጋ,አከፋፈል,ሰዓት\n";
+            salesData.forEach(row => {
+                let items = [cleanValue(row.food_list), cleanValue(row.drink_list), cleanValue(row.items)].filter(x => x !== "").join(" + ");
+                csvContent += `${row.queue_no},"${items}",${row.total_price},${row.payment_method || 'Cash'},${new Date(row.created_at).toLocaleTimeString()}\n`;
+            });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }));
+            link.download = `Carmel_Sales_${today.toLocaleDateString().replace(/\//g, '-')}.csv`;
+            link.click();
+            localStorage.removeItem('carmel_daily_log');
+            alert("ሂሳብ ተዘግቷል!");
+            window.location.reload(); 
+        }
+        // --- READY ORDERS LOGIC (New) ---
+        async function loadReadyOrders() {
+            const today = new Date(); today.setHours(0,0,0,0);
+            const { data } = await supabaseClient.from('orders').select('id, queue_no').eq('status', 'ready').gte('created_at', today.toISOString());
+            const tray = document.getElementById('ready-tray');
+            tray.innerHTML = '';
+            if (data && data.length > 0) {
+                data.forEach(order => {
+                    const icon = document.createElement('div');
+                    icon.className = "bg-green-600 text-white pl-4 pr-1 py-1 rounded-full flex items-center gap-2 shadow-lg animate-bounce";
+                    icon.innerHTML = `<span class="font-black text-sm">#${order.queue_no} ዝግጁ</span>
+                                     <button onclick="orderOut('${order.id}')" class="bg-white/20 hover:bg-white/40 rounded-full p-1 text-[10px] font-black uppercase">Out</button>`;
+                    tray.appendChild(icon);
+                });
+            }
+        }
+        async function orderOut(id) {
+            // Mark as 'done' so it disappears from the tray
+            await supabaseClient.from('orders').update({ status: 'done' }).eq('id', id);
+            loadReadyOrders();
+        }
+        async function loadOrders() {
+            const { data } = await supabaseClient.from('orders').select('*').eq('status', 'pending');
+            const list = document.getElementById('pending-list');
+            document.getElementById('pending-badge').innerText = data ? data.length : 0;
+            list.innerHTML = '';
+            if (data) {
+                data.forEach(order => {
+                    let combined = [cleanValue(order.food_list), cleanValue(order.drink_list), cleanValue(order.items)].filter(x => x !== "").join(", ") || "No Items";
+                    const card = document.createElement('div');
+                    card.className = "bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm";
+                    card.innerHTML = `<div class="flex justify-between items-center mb-4"><span class="text-3xl font-black">#${order.queue_no}</span><span class="text-green-600 font-bold">${order.total_price} Birr</span></div><p class="text-slate-600 font-bold mb-6">${combined}</p><button onclick="verifyOrder('${order.id}', '${order.total_price}', '${order.food_list}', '${order.drink_list}', '${order.items}')" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black hover:bg-black transition-all">አረጋግጥ (Verify)</button>`;
+                    list.appendChild(card);
+                });
+            }
+            updateSalesUI();
+        }
+        supabaseClient.channel('refresh')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
+                if (payload.new && payload.new.status === 'ready') {
+                    readySound.play();
+                    loadReadyOrders();
+                }
+                loadOrders();
+            })
+            .subscribe();
+        loadOrders();
+        loadReadyOrders();
     </script>
 </body>
 </html>
