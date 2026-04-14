@@ -17,7 +17,6 @@
         </div>
 
     <div class="max-w-4xl mx-auto">
-
         <!-- ============== NEW EXPENSE SECTION (Purchasing) ============== -->
         <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-orange-100 mb-8">
             <h2 class="text-orange-500 text-lg font-black mb-4">Daily Expense (Purchasing)</h2>
@@ -97,133 +96,140 @@
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImljdWJldXBua2Z1bGlkbXRpcXN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyOTg5MTAsImV4cCI6MjA4ODg3NDkxMH0.-sRfDPpsTh5ohKUmG460xvlS0RW6jYg8SsYGDDI7P-k";
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // --------- EXPENSES/PURCHASING FEATURE (NEW) ---------
-        async function loadInventoryItems() {
-            const { data, error } = await supabaseClient.from('inventory').select('*');
-            const sel = document.getElementById('purchase-item');
-            sel.innerHTML = `<option value="">-- Select Item --</option>`;
-            if (data) {
-                data.forEach(item => {
-                    sel.innerHTML += `<option value="${item.id}" data-unit="${item.unit}">${item.item_name}</option>`;
-                });
+        // --------- EXPENSES/PURCHASING FEATURE (NEW, ROBUST) ---------
+        document.addEventListener('DOMContentLoaded', function () {
+            async function loadInventoryItems() {
+                const sel = document.getElementById('purchase-item');
+                sel.innerHTML = `<option value="">Loading...</option>`;
+                const { data, error } = await supabaseClient.from('inventory').select('*');
+                sel.innerHTML = `<option value="">-- Select Item --</option>`;
+                if (data && data.length > 0) {
+                    data.forEach(item => {
+                        sel.innerHTML += `<option value="${item.id}" data-unit="${item.unit || ''}">${item.item_name}</option>`;
+                    });
+                } else {
+                    sel.innerHTML += `<option value="">⚠️ No inventory items found.</option>`;
+                }
+                sel.innerHTML += `<option value="other" data-unit="">Other (Write Expense Manually)</option>`;
             }
-            sel.innerHTML += `<option value="other" data-unit="">Other (Write Expense Manually)</option>`;
-        }
-        loadInventoryItems();
+            loadInventoryItems();
 
-        document.getElementById('purchase-item').addEventListener('change', function() {
-            const sel = this;
-            const unit = sel.options[sel.selectedIndex].getAttribute('data-unit') || '';
-            document.getElementById('purchase-unit').value = unit;
-            if(sel.value === 'other') {
-                document.getElementById('purchase-desc').classList.remove('hidden');
-                document.getElementById('purchase-qty').disabled = true;
-                document.getElementById('purchase-qty').value = '';
-                document.getElementById('purchase-unit').value = '';
-            } else {
-                document.getElementById('purchase-desc').classList.add('hidden');
-                document.getElementById('purchase-qty').disabled = false;
+            document.getElementById('purchase-item').addEventListener('change', function() {
+                const sel = this;
+                const unit = sel.options[sel.selectedIndex].getAttribute('data-unit') || '';
+                document.getElementById('purchase-unit').value = unit;
+                if(sel.value === 'other') {
+                    document.getElementById('purchase-desc').classList.remove('hidden');
+                    document.getElementById('purchase-qty').disabled = true;
+                    document.getElementById('purchase-qty').value = '';
+                    document.getElementById('purchase-unit').value = '';
+                } else {
+                    document.getElementById('purchase-desc').classList.add('hidden');
+                    document.getElementById('purchase-qty').disabled = false;
+                }
+                updateTotal();
+            });
+
+            ['purchase-qty', 'purchase-price'].forEach(id => {
+                document.getElementById(id).addEventListener('input', updateTotal);
+            });
+
+            function updateTotal() {
+                const sel = document.getElementById('purchase-item');
+                if(sel.value === 'other') {
+                    const price = Number(document.getElementById('purchase-price').value);
+                    document.getElementById('purchase-total').value = price > 0 ? price : '';
+                    return;
+                }
+                const qty = Number(document.getElementById('purchase-qty').value);
+                const price = Number(document.getElementById('purchase-price').value);
+                if (qty > 0 && price > 0) {
+                    document.getElementById('purchase-total').value = qty * price;
+                } else {
+                    document.getElementById('purchase-total').value = '';
+                }
             }
-            updateTotal();
-        });
 
-        ['purchase-qty', 'purchase-price'].forEach(id => {
-          document.getElementById(id).addEventListener('input', updateTotal);
-        });
-        function updateTotal() {
-          const sel = document.getElementById('purchase-item');
-          if(sel.value === 'other') {
-            const price = Number(document.getElementById('purchase-price').value);
-            document.getElementById('purchase-total').value = price > 0 ? price : '';
-            return;
-          }
-          const qty = Number(document.getElementById('purchase-qty').value);
-          const price = Number(document.getElementById('purchase-price').value);
-          if (qty > 0 && price > 0) {
-            document.getElementById('purchase-total').value = qty * price;
-          } else {
-            document.getElementById('purchase-total').value = '';
-          }
-        }
+            document.getElementById('purchase-form').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const sel = document.getElementById('purchase-item');
+                const item_id = sel.value;
+                let item_name = sel.options[sel.selectedIndex].textContent;
+                const qty = Number(document.getElementById('purchase-qty').value);
+                const pricePerUnit = Number(document.getElementById('purchase-price').value);
+                const totalPrice = Number(document.getElementById('purchase-total').value);
+                const cashierName = "Cashier"; // Set dynamically if you have logins
+                const description = document.getElementById('purchase-desc').value || '';
 
-        document.getElementById('purchase-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const sel = document.getElementById('purchase-item');
-            const item_id = sel.value;
-            let item_name = sel.options[sel.selectedIndex].textContent;
-            const qty = Number(document.getElementById('purchase-qty').value);
-            const pricePerUnit = Number(document.getElementById('purchase-price').value);
-            const totalPrice = Number(document.getElementById('purchase-total').value);
-            const cashierName = "Cashier"; // Set dynamically if you have logins
-            const description = document.getElementById('purchase-desc').value || '';
+                // "Other" logic
+                if (item_id === 'other') {
+                    if (!description || totalPrice < 1 || pricePerUnit < 1) {
+                        document.getElementById('purchasing-result').innerText = 'Please fill out description and prices.';
+                        document.getElementById('purchasing-result').className = 'mt-3 font-bold text-red-500';
+                        return;
+                    }
+                    item_name = description;
+                    const { error: expenseError } = await supabaseClient.from('expenses').insert([
+                        {
+                            item_id: null,
+                            item_name,
+                            amount_spent: totalPrice,
+                            qty: null,
+                            unit_price: pricePerUnit,
+                            description: '(Other, non-stocked expense)',
+                            bought_by: cashierName
+                        }
+                    ]);
+                    if(!expenseError){
+                        document.getElementById('purchasing-result').innerText = 'Expense Added!';
+                        document.getElementById('purchasing-result').className = 'mt-3 font-bold text-green-400';
+                        loadInventoryItems();
+                        this.reset();
+                        document.getElementById('purchase-desc').classList.add('hidden');
+                        document.getElementById('purchase-unit').value = '';
+                        document.getElementById('purchase-total').value = '';
+                    } else {
+                        document.getElementById('purchasing-result').innerText = 'Something went wrong!';
+                        document.getElementById('purchasing-result').className = 'mt-3 font-bold text-red-500';
+                    }
+                    return;
+                }
 
-            // "Other" logic
-            if (item_id === 'other') {
-                if (!description || totalPrice < 1 || pricePerUnit < 1) {
-                    document.getElementById('purchasing-result').innerText = 'Please fill out description and prices.';
+                // For inventory items
+                if(!item_id || qty < 1 || pricePerUnit < 1) {
+                    document.getElementById('purchasing-result').innerText = 'Please fill all required fields.';
                     document.getElementById('purchasing-result').className = 'mt-3 font-bold text-red-500';
                     return;
                 }
-                item_name = description;
+
                 const { error: expenseError } = await supabaseClient.from('expenses').insert([
                     {
-                        item_id: null,
+                        item_id,
                         item_name,
                         amount_spent: totalPrice,
-                        qty: null,
+                        qty,
                         unit_price: pricePerUnit,
-                        description: '(Other, non-stocked expense)',
+                        description: 'Purchased for stock',
                         bought_by: cashierName
                     }
                 ]);
-                if(!expenseError){
-                    document.getElementById('purchasing-result').innerText = 'Expense Added!';
+                const { data: existingItem, error: invErr } = await supabaseClient.from('inventory').select('*').eq('id', item_id).single();
+                let newQty = (existingItem?.quantity || 0) + qty;
+                const { error: updateErr } = await supabaseClient.from('inventory').update({ quantity: newQty }).eq('id', item_id);
+
+                if(!expenseError && !updateErr){
+                    document.getElementById('purchasing-result').innerText = 'Expense Added, Stock Updated!';
                     document.getElementById('purchasing-result').className = 'mt-3 font-bold text-green-400';
                     loadInventoryItems();
                     this.reset();
-                    document.getElementById('purchase-desc').classList.add('hidden');
                     document.getElementById('purchase-unit').value = '';
                     document.getElementById('purchase-total').value = '';
                 } else {
                     document.getElementById('purchasing-result').innerText = 'Something went wrong!';
                     document.getElementById('purchasing-result').className = 'mt-3 font-bold text-red-500';
                 }
-                return;
-            }
-
-            if(!item_id || qty < 1 || pricePerUnit < 1) {
-                document.getElementById('purchasing-result').innerText = 'Please fill all required fields.';
-                document.getElementById('purchasing-result').className = 'mt-3 font-bold text-red-500';
-                return;
-            }
-
-            const { error: expenseError } = await supabaseClient.from('expenses').insert([
-                {
-                    item_id,
-                    item_name,
-                    amount_spent: totalPrice,
-                    qty,
-                    unit_price: pricePerUnit,
-                    description: 'Purchased for stock',
-                    bought_by: cashierName
-                }
-            ]);
-            const { data: existingItem, error: invErr } = await supabaseClient.from('inventory').select('*').eq('id', item_id).single();
-            let newQty = (existingItem?.quantity || 0) + qty;
-            const { error: updateErr } = await supabaseClient.from('inventory').update({ quantity: newQty }).eq('id', item_id);
-
-            if(!expenseError && !updateErr){
-                document.getElementById('purchasing-result').innerText = 'Expense Added, Stock Updated!';
-                document.getElementById('purchasing-result').className = 'mt-3 font-bold text-green-400';
-                loadInventoryItems();
-                this.reset();
-                document.getElementById('purchase-unit').value = '';
-                document.getElementById('purchase-total').value = '';
-            } else {
-                document.getElementById('purchasing-result').innerText = 'Something went wrong!';
-                document.getElementById('purchasing-result').className = 'mt-3 font-bold text-red-500';
-            }
-        });
+            });
+        }); // END DOMContentLoaded
 
         // ========== REST OF YOUR ORIGINAL CODE CONTINUES (ORDERS, SUMMARY, ETC) ==========
 
