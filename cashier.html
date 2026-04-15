@@ -3,178 +3,186 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Carmel - Cashier Dashboard</title>
+<title>Carmel Cashier Pro</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<style>
-.custom-scrollbar::-webkit-scrollbar { width: 4px; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
-</style>
 </head>
 
 <body class="bg-slate-50 p-4 pb-24">
 
+<!-- SEARCH -->
+<div class="max-w-4xl mx-auto mb-4">
+    <input id="searchBox" oninput="loadOrders()" 
+    class="w-full p-3 rounded-xl border"
+    placeholder="Search orders, items, queue no...">
+</div>
+
+<!-- READY TRAY -->
 <div id="ready-tray" class="max-w-4xl mx-auto mb-6 flex flex-wrap gap-3"></div>
 
+<!-- DAILY STATS -->
+<div class="max-w-4xl mx-auto grid grid-cols-2 gap-3 mb-6">
+
+    <div class="bg-white p-4 rounded-2xl shadow">
+        <p class="text-xs text-gray-400">Sales</p>
+        <p id="sales" class="text-green-600 font-black text-xl">0</p>
+    </div>
+
+    <div class="bg-white p-4 rounded-2xl shadow">
+        <p class="text-xs text-gray-400">Expense</p>
+        <p id="expense" class="text-red-500 font-black text-xl">0</p>
+    </div>
+
+    <div class="bg-white p-4 rounded-2xl shadow col-span-2">
+        <p class="text-xs text-gray-400">Net Profit</p>
+        <p id="profit" class="text-blue-600 font-black text-xl">0</p>
+    </div>
+
+</div>
+
+<!-- ORDERS -->
 <div class="max-w-4xl mx-auto">
-
-<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-
-<div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200">
-<h2 class="text-slate-400 text-[10px] uppercase font-black">የዛሬ ጠቅላላ ሽያጭ</h2>
-<p id="daily-total" class="text-4xl font-black text-green-600">0 Birr</p>
-</div>
-
-<div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200">
-<h2 class="text-slate-400 text-[10px] uppercase font-black">የተሸጡ ምግቦች</h2>
-<div id="item-stats-list"></div>
-</div>
-
-</div>
-
-<h1 class="text-xl font-black mb-6">🔔 Pending Orders
-<span id="pending-badge" class="bg-orange-500 text-white px-2 rounded-full text-xs">0</span>
-</h1>
-
-<!-- SEARCH -->
-<input id="searchBox" oninput="loadOrders()"
-class="w-full p-3 mb-4 border rounded-xl"
-placeholder="Search orders...">
-
-<div id="pending-list" class="space-y-4"></div>
-
-</div>
-
-<!-- IMAGE VIEW -->
-<div id="imgModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center">
-<img id="bigImg" class="max-w-full max-h-full rounded">
+    <h1 class="font-black text-xl mb-3">Pending Orders</h1>
+    <div id="pending-list" class="space-y-3"></div>
 </div>
 
 <script>
 
-/* ================= SUPABASE (UPDATED) ================= */
-const SUPABASE_URL = "https://csdpoyqbkjljaqknunyv.supabase.co";
-const SUPABASE_KEY = "sb_publishable_GZ9zqNM1CPfdyaEhLY_pOg_Fs4CSfrC";
+const SUPABASE_URL="https://csdpoyqbkjljaqknunyv.supabase.co";
+const SUPABASE_KEY="sb_publishable_GZ9zqNM1CPfdyaEhLY_pOg_Fs4CSfrC";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-/* ================= KEEP ORIGINAL HELPERS ================= */
-function cleanValue(v){ return (v && v!="EMPTY") ? v : ""; }
+/* ---------------- HELPERS ---------------- */
+function clean(v){ return v && v!=="null" && v!=="EMPTY" ? v : ""; }
 
-/* ================= SCREENSHOT VIEW (ADDED) ================= */
-function viewImage(url){
-    document.getElementById("imgModal").classList.remove("hidden");
-    document.getElementById("bigImg").src = url;
+/* ---------------- SCREENSHOT ---------------- */
+function viewScreenshot(url){
+    window.open(url,'_blank');
 }
-document.getElementById("imgModal").onclick = () =>
-document.getElementById("imgModal").classList.add("hidden");
 
-/* ================= CANCEL ORDER (ADDED) ================= */
+/* ---------------- CANCEL ---------------- */
 async function cancelOrder(id){
-    if(!confirm("Cancel this order?")) return;
-    await supabaseClient.from("orders")
-        .update({status:"cancelled"})
-        .eq("id",id);
+    if(!confirm("Cancel order?")) return;
+    await supabaseClient.from("orders").update({status:"cancelled"}).eq("id",id);
     loadOrders();
 }
 
-/* ================= VERIFY ORDER (UNCHANGED IDEA) ================= */
+/* ---------------- VERIFY ---------------- */
 async function verifyOrder(id){
-    await supabaseClient.from("orders")
-        .update({status:"verified"})
-        .eq("id",id);
+    await supabaseClient.from("orders").update({status:"verified"}).eq("id",id);
     loadOrders();
 }
 
-/* ================= LOAD ORDERS (UPGRADED ONLY ADDITIONS) ================= */
+/* ---------------- LOAD ORDERS ---------------- */
 async function loadOrders(){
 
-let search = document.getElementById("searchBox").value || "";
+    let search = document.getElementById("searchBox").value.toLowerCase();
 
-let {data} = await supabaseClient
-.from("orders")
-.select("*")
-.eq("status","pending");
+    let {data} = await supabaseClient
+        .from("orders")
+        .select("*")
+        .eq("status","pending");
 
-let list = document.getElementById("pending-list");
-list.innerHTML="";
+    let list = document.getElementById("pending-list");
+    list.innerHTML="";
 
-if(!data) return;
+    let totalSales = 0;
+    let itemStats = {};
 
-document.getElementById("pending-badge").innerText = data.length;
+    if(data){
 
-data.forEach(o=>{
+        data.forEach(o=>{
 
-let items = [cleanValue(o.food_list),cleanValue(o.drink_list),cleanValue(o.items)].join(", ");
+            let text = (o.food_list + o.drink_list + o.items).toLowerCase();
 
-/* SEARCH FILTER */
-if(search && !JSON.stringify(o).toLowerCase().includes(search.toLowerCase())) return;
+            if(search && !text.includes(search) && !o.queue_no.includes(search)) return;
 
-list.innerHTML += `
-<div class="bg-white p-5 rounded-2xl shadow">
+            totalSales += Number(o.total_price || 0);
 
-<div class="flex justify-between">
-<b>#${o.queue_no}</b>
-<span class="text-green-600">${o.total_price} Birr</span>
-</div>
+            // ITEM TRACK
+            let items = clean(o.food_list)+","+clean(o.drink_list)+","+clean(o.items);
+            items.split(",").forEach(i=>{
+                i=i.trim();
+                if(!i) return;
+                itemStats[i] = (itemStats[i]||0)+1;
+            });
 
-<p class="text-sm">${items}</p>
+            let div = document.createElement("div");
+            div.className="bg-white p-4 rounded-xl shadow";
 
-<!-- ORDER NOTES (NEW) -->
-<p class="text-xs text-blue-500">Note: ${o.order_note || "No note"}</p>
+            div.innerHTML=`
+                <div class="flex justify-between">
+                    <b>#${o.queue_no}</b>
+                    <span class="text-green-600">${o.total_price} Birr</span>
+                </div>
 
-<!-- PAYMENT METHOD (NEW) -->
-<p class="text-xs text-purple-500">Payment: ${o.payment_method || "N/A"}</p>
+                <p class="text-sm mt-1">${o.items || ""}</p>
 
-<!-- SCREENSHOT -->
-${o.payment_screenshot ? `
-<img src="${o.payment_screenshot}"
-onclick="viewImage('${o.payment_screenshot}')"
-class="h-32 w-full object-cover rounded mt-2 border cursor-pointer">
-` : ""}
+                <p class="text-xs text-gray-500">Payment: ${o.payment_method || "Cash"}</p>
 
-<!-- RECEIPT -->
-${o.receipt_url ? `
-<a href="${o.receipt_url}" target="_blank"
-class="text-xs text-green-600 underline">View Receipt</a>
-` : ""}
+                <p class="text-xs text-blue-500">Note: ${o.order_note || "-"}</p>
 
-<!-- ACTIONS -->
-<div class="flex gap-2 mt-3">
+                ${o.payment_screenshot ? 
+                    `<img onclick="viewScreenshot('${o.payment_screenshot}')"
+                    src="${o.payment_screenshot}" class="h-32 w-full object-cover rounded mt-2 cursor-pointer">`
+                    : ""}
 
-<button onclick="verifyOrder('${o.id}')"
-class="flex-1 bg-green-600 text-white py-2 rounded">
-✔ Verify
-</button>
+                ${o.receipt_url ?
+                    `<a href="${o.receipt_url}" target="_blank" class="text-xs text-purple-600">View Receipt</a>` : ""}
 
-<button onclick="cancelOrder('${o.id}')"
-class="flex-1 bg-red-600 text-white py-2 rounded">
-✖ Cancel
-</button>
+                <div class="flex gap-2 mt-2">
+                    <button onclick="verifyOrder('${o.id}')" class="bg-green-600 text-white px-3 py-1 rounded">✔</button>
+                    <button onclick="cancelOrder('${o.id}')" class="bg-red-600 text-white px-3 py-1 rounded">✖</button>
+                </div>
+            `;
 
-</div>
+            list.appendChild(div);
+        });
+    }
 
-</div>`;
-});
+    // update stats
+    document.getElementById("sales").innerText = totalSales + " Birr";
+    document.getElementById("expense").innerText = getExpense() + " Birr";
+    document.getElementById("profit").innerText = (totalSales - getExpense()) + " Birr";
+
 }
 
-/* ================= DAILY SALES (KEEP ORIGINAL) ================= */
-function updateSalesUI(){
-let today=new Date().toLocaleDateString();
-let data=JSON.parse(localStorage.getItem("carmel_daily_log"))||{};
-let d=data[today]||{total:0};
-document.getElementById("daily-total").innerText=d.total+" Birr";
+/* ---------------- EXPENSE ---------------- */
+function getExpense(){
+    let exp = JSON.parse(localStorage.getItem("expense")||"0");
+    return exp || 0;
 }
 
-/* ================= REALTIME ================= */
+/* ---------------- READY ORDERS ---------------- */
+async function loadReady(){
+    let {data} = await supabaseClient.from("orders").select("*").eq("status","ready");
+
+    let tray=document.getElementById("ready-tray");
+    tray.innerHTML="";
+
+    if(data){
+        data.forEach(o=>{
+            let el=document.createElement("div");
+            el.className="bg-green-600 text-white px-3 py-1 rounded-full";
+            el.innerHTML=`#${o.queue_no} Ready`;
+            tray.appendChild(el);
+        });
+    }
+}
+
+/* ---------------- REALTIME ---------------- */
 supabaseClient.channel("orders")
 .on("postgres_changes",{event:"*",schema:"public",table:"orders"},()=>{
-loadOrders();
+    loadOrders();
+    loadReady();
 })
 .subscribe();
 
+/* ---------------- INIT ---------------- */
 loadOrders();
+loadReady();
 
 </script>
 
