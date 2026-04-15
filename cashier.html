@@ -1,389 +1,211 @@
 <!DOCTYPE html>
 <html lang="am">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carmel - Cashier Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.1); border-radius: 10px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carmel - Cashier PRO</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
+</style>
 </head>
+
 <body class="bg-slate-50 p-4 pb-24">
 
-    <div id="ready-tray" class="max-w-4xl mx-auto mb-6 flex flex-wrap gap-3"></div>
+<!-- READY -->
+<div id="ready-tray" class="flex gap-2 flex-wrap mb-4"></div>
 
-    <div class="max-w-4xl mx-auto">
-        <!-- ============== NEW EXPENSE SECTION (Purchasing) ============== -->
-        <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-orange-100 mb-8">
-            <h2 class="text-orange-500 text-lg font-black mb-4">Daily Expense (Purchasing)</h2>
-            <form id="purchase-form" class="flex flex-col space-y-4">
-                <select id="purchase-item" class="p-2 rounded bg-zinc-800 text-white" required>
-                    <option value="">-- Select Item --</option>
-                </select>
-                <input id="purchase-desc" type="text" placeholder="Describe expense (only for 'Other')" class="p-2 rounded bg-zinc-800 text-white hidden">
-                <div class="flex space-x-2">
-                    <input id="purchase-qty" type="number" min="1" placeholder="Qty" class="p-2 rounded bg-zinc-800 text-white flex-1" required>
-                    <input id="purchase-unit" type="text" placeholder="Unit" class="p-2 rounded bg-zinc-800 text-zinc-400 w-24" disabled>
-                    <input id="purchase-price" type="number" min="1" placeholder="Unit price" class="p-2 rounded bg-zinc-800 text-white flex-1" required>
-                </div>
-                <input id="purchase-total" type="number" placeholder="Total Price" class="p-2 rounded bg-zinc-800 text-green-400 font-bold" readonly>
-                <button type="submit" class="bg-orange-500 hover:bg-orange-700 text-black font-bold rounded px-4 py-2">Add Purchase</button>
-            </form>
-            <div id="purchasing-result" class="mt-3 font-bold"></div>
-        </div>
-        <!-- ============== END NEW EXPENSE SECTION ============== -->
+<div class="max-w-4xl mx-auto">
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-            <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200">
-                <h2 class="text-slate-400 text-[10px] uppercase font-black tracking-widest mb-1">የዛሬ ጠቅላላ ሽያጭ</h2>
-                <div class="flex justify-between items-end">
-                    <p id="daily-total" class="text-4xl font-black text-green-600">0 Birr</p>
-                    <button onclick="openSummary()" class="text-[10px] bg-slate-100 px-3 py-2 rounded-xl font-bold hover:bg-slate-200">ሪፖርት አሳይ 📊</button>
-                </div>
-            </div>
-            <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200">
-                <h2 class="text-slate-400 text-[10px] uppercase font-black tracking-widest mb-3">የተሸጡ ምግቦች ዝርዝር</h2>
-                <div id="item-stats-list" class="flex flex-wrap gap-2 max-h-[100px] overflow-y-auto custom-scrollbar">
-                    <p class="text-slate-400 text-xs italic">ሽያጭ የለም...</p>
-                </div>
-            </div>
-        </div>
+<!-- SALES -->
+<div class="bg-white p-5 rounded-2xl mb-4">
+    <p class="text-xs text-gray-400">Today's Sales</p>
+    <h1 id="daily-total" class="text-3xl font-black text-green-600">0 Birr</h1>
+    <button onclick="openReport()" class="mt-2 text-sm bg-black text-white px-3 py-1 rounded">📊 Report</button>
+</div>
 
-        <h1 class="text-xl font-black text-slate-800 mb-6 flex items-center gap-2">
-            <span>🔔 በመጠባበቅ ላይ ያሉ ትዕዛዞች</span>
-            <span id="pending-badge" class="bg-orange-500 text-white text-[10px] px-2 py-0.5 rounded-full">0</span>
-        </h1>
+<!-- EXPENSE -->
+<div class="bg-white p-5 rounded-2xl mb-4">
+<h2 class="font-bold mb-2">Add Expense</h2>
+<input id="exp-name" placeholder="Item" class="border p-2 w-full mb-2">
+<input id="exp-amount" type="number" placeholder="Amount" class="border p-2 w-full mb-2">
+<button onclick="addExpense()" class="bg-red-500 text-white px-3 py-2 rounded w-full">Add Expense</button>
+</div>
 
-        <div id="pending-list" class="space-y-4"></div>
-    </div>
+<!-- PENDING -->
+<h2 class="font-black mb-2">Pending Orders</h2>
+<div id="pending-list" class="space-y-3"></div>
 
-    <div id="summaryModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-slate-900 w-full max-w-md rounded-[3rem] p-8 border border-white/10 shadow-2xl">
-            <h2 class="text-orange-500 font-black text-center text-xl mb-6">የዛሬ የሽያጭ ማጠቃለያ</h2>
-            <div class="grid grid-cols-2 gap-4 mb-6">
-                <div class="bg-white/5 p-4 rounded-3xl text-center">
-                    <p class="text-gray-400 text-[10px] uppercase mb-1">ጠቅላላ ሽያጭ</p>
-                    <p id="total-sales" class="text-xl font-black text-green-400">0 ETB</p>
-                </div>
-                <div class="bg-white/5 p-4 rounded-3xl text-center">
-                    <p class="text-gray-400 text-[10px] uppercase mb-1">የትዕዛዝ ብዛት</p>
-                    <p id="order-count" class="text-xl font-black text-white">0</p>
-                </div>
-            </div>
-            <button id="details-btn" onclick="toggleDetails()" class="w-full py-3 text-gray-400 font-bold text-sm">ዝርዝር አሳይ ⬇️</button>
-            <div id="details-section" class="hidden mb-6 max-h-60 overflow-y-auto custom-scrollbar pr-2">
-                <div id="sales-items-list" class="space-y-2"></div>
-            </div>
-            <div class="flex gap-3">
-                <button onclick="closeSummary()" class="flex-1 bg-white/10 text-white py-4 rounded-2xl font-bold">ዝጋ</button>
-                <button onclick="adminVerifyClose()" class="flex-1 bg-orange-600 text-white py-4 rounded-2xl font-black shadow-lg shadow-orange-900/20">ሂሳብ ዝጋ & አውርድ</button>
-            </div>
-        </div>
-    </div>
+</div>
 
-    <script>
-        // ------ Supabase connection ------
-        const SUPABASE_URL = "https://csdpoyqbkjljaqknunyv.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_GZ9zqNM1CPfdyaEhLY_pOg_Fs4CSfrC";
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+<!-- REPORT MODAL -->
+<div id="reportModal" class="fixed inset-0 bg-black/70 hidden items-center justify-center">
+<div class="bg-white p-6 rounded-2xl w-[90%] max-w-md">
+<h2 class="font-black text-lg mb-3">Daily Report</h2>
 
-        // --------- EXPENSES/PURCHASING FEATURE (step-by-step fixed) ---------
-        document.addEventListener('DOMContentLoaded', function () {
-            async function loadInventoryItems() {
-                const sel = document.getElementById('purchase-item');
-                sel.innerHTML = `<option value="">Loading...</option>`;
-                const { data, error } = await supabaseClient.from('inventory').select('*');
-                sel.innerHTML = `<option value="">-- Select Item --</option>`;
-                if (data && data.length > 0) {
-                    data.forEach(item => {
-                        sel.innerHTML += `<option value="${item.id}" data-unit="${item.unit || ''}">${item.item_name}</option>`;
-                    });
-                } else {
-                    sel.innerHTML += `<option value="">⚠️ No inventory items found.</option>`;
-                }
-                sel.innerHTML += `<option value="other" data-unit="">Other (Write Expense Manually)</option>`;
-            }
-            loadInventoryItems();
+<p>Total Sales: <b id="r-sales">0</b></p>
+<p>Total Expense: <b id="r-expense">0</b></p>
+<p>Profit: <b id="r-profit">0</b></p>
 
-            document.getElementById('purchase-item').addEventListener('change', function() {
-                const sel = this;
-                const unit = sel.options[sel.selectedIndex].getAttribute('data-unit') || '';
-                document.getElementById('purchase-unit').value = unit;
-                if(sel.value === 'other') {
-                    document.getElementById('purchase-desc').classList.remove('hidden');
-                    document.getElementById('purchase-qty').disabled = true;
-                    document.getElementById('purchase-qty').value = '';
-                    document.getElementById('purchase-unit').value = '';
-                } else {
-                    document.getElementById('purchase-desc').classList.add('hidden');
-                    document.getElementById('purchase-qty').disabled = false;
-                }
-                updateTotal();
-            });
+<button onclick="downloadExcel()" class="bg-green-600 text-white px-3 py-2 rounded w-full mt-3">⬇ Download Excel</button>
+<button onclick="closeReport()" class="bg-gray-300 px-3 py-2 rounded w-full mt-2">Close</button>
 
-            ['purchase-qty', 'purchase-price'].forEach(id => {
-                document.getElementById(id).addEventListener('input', updateTotal);
-            });
-            document.getElementById('purchase-item').addEventListener('change', updateTotal);
+</div>
+</div>
 
-            function updateTotal() {
-                const sel = document.getElementById('purchase-item');
-                if(sel.value === 'other') {
-                    const price = Number(document.getElementById('purchase-price').value);
-                    document.getElementById('purchase-total').value = price > 0 ? price : '';
-                    return;
-                }
-                const qty = Number(document.getElementById('purchase-qty').value);
-                const price = Number(document.getElementById('purchase-price').value);
-                if (qty > 0 && price > 0) {
-                    document.getElementById('purchase-total').value = qty * price;
-                } else {
-                    document.getElementById('purchase-total').value = '';
-                }
-            }
+<script>
 
-            document.getElementById('purchase-form').addEventListener('submit', async function(e) {
-                e.preventDefault();
-                const sel = document.getElementById('purchase-item');
-                const item_id = sel.value;
-                let item_name = sel.options[sel.selectedIndex].textContent;
-                const qty = Number(document.getElementById('purchase-qty').value);
-                const pricePerUnit = Number(document.getElementById('purchase-price').value);
-                const totalPrice = Number(document.getElementById('purchase-total').value);
-                const cashierName = "Cashier";
-                const description = document.getElementById('purchase-desc').value || '';
-                let errMsg = "";
+// ---------- SUPABASE ----------
+const supabaseClient = supabase.createClient(
+"https://csdpoyqbkjljaqknunyv.supabase.co",
+"sb_publishable_GZ9zqNM1CPfdyaEhLY_pOg_Fs4CSfrC"
+);
 
-                if (item_id === 'other') {
-                    if (!description || totalPrice < 1 || pricePerUnit < 1) {
-                        document.getElementById('purchasing-result').innerText = 'Please fill out description and prices.';
-                        document.getElementById('purchasing-result').className = 'mt-3 font-bold text-red-500';
-                        return;
-                    }
-                    item_name = description;
-                    const { error: expenseError } = await supabaseClient.from('expenses').insert([
-                        {
-                            item_id: null,
-                            item_name,
-                            amount_spent: totalPrice,
-                            quantity_bought: null,
-                            unit_price: pricePerUnit,
-                            description: '(Other, non-stocked expense)',
-                            bought_by: cashierName
-                        }
-                    ]);
-                    if(!expenseError){
-                        document.getElementById('purchasing-result').innerText = 'Expense Added!';
-                        document.getElementById('purchasing-result').className = 'mt-3 font-bold text-green-400';
-                        loadInventoryItems();
-                        this.reset();
-                        document.getElementById('purchase-desc').classList.add('hidden');
-                        document.getElementById('purchase-unit').value = '';
-                        document.getElementById('purchase-total').value = '';
-                    } else {
-                        document.getElementById('purchasing-result').innerText = 'Something went wrong! ' + expenseError.message;
-                        document.getElementById('purchasing-result').className = 'mt-3 font-bold text-red-500';
-                    }
-                    return;
-                }
+// ---------- SOUND ----------
+const sound = new Audio("https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3");
 
-                if(!item_id || qty < 1 || pricePerUnit < 1) {
-                    document.getElementById('purchasing-result').innerText = 'Please fill all required fields.';
-                    document.getElementById('purchasing-result').className = 'mt-3 font-bold text-red-500';
-                    return;
-                }
+// ---------- HELPERS ----------
+function clean(v){ return (v && v!="EMPTY" && v!="null") ? v : ""; }
 
-                const { error: expenseError } = await supabaseClient.from('expenses').insert([
-                    {
-                        item_id,
-                        item_name,
-                        amount_spent: totalPrice,
-                        quantity_bought: qty,
-                        unit_price: pricePerUnit,
-                        description: 'Purchased for stock',
-                        bought_by: cashierName
-                    }
-                ]);
+// ---------- IMAGE ----------
+function viewImage(url){
+let w=window.open();
+w.document.write(`<img src="${url}" style="width:100%">`);
+}
 
-                let updateErr = null;
-                if (!expenseError) {
-                    const { data: existingItem, error: invErr } = await supabaseClient.from('inventory').select('*').eq('id', item_id).single();
-                    let newQty = (existingItem?.quantity || 0) + qty;
-                    const { error } = await supabaseClient.from('inventory').update({ quantity: newQty }).eq('id', item_id);
-                    updateErr = error;
-                }
+// ---------- VERIFY ----------
+async function verifyOrder(id,price){
+await supabaseClient.from('orders').update({status:'verified'}).eq('id',id);
 
-                if(!expenseError && !updateErr){
-                    document.getElementById('purchasing-result').innerText = 'Expense Added, Stock Updated!';
-                    document.getElementById('purchasing-result').className = 'mt-3 font-bold text-green-400';
-                    loadInventoryItems();
-                    this.reset();
-                    document.getElementById('purchase-unit').value = '';
-                    document.getElementById('purchase-total').value = '';
-                } else {
-                    if (expenseError) errMsg += 'Expense: ' + expenseError.message + ' ';
-                    if (updateErr) errMsg += 'Inventory: ' + updateErr.message;
-                    document.getElementById('purchasing-result').innerText = 'Something went wrong! ' + errMsg;
-                    document.getElementById('purchasing-result').className = 'mt-3 font-bold text-red-500';
-                }
-            });
-        });
+let s=Number(localStorage.getItem('sales')||0);
+localStorage.setItem('sales', s+Number(price));
 
-        // ... The rest of your unchanged original script: orders, ready tray, etc below ...
-        let isDetailsOpen = false;
-        const readySound = new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3');
-        function cleanValue(val) { return (val && val !== "EMPTY" && val !== "null") ? val : ""; }
-        function updateSalesUI() {
-            const today = new Date().toLocaleDateString();
-            const data = JSON.parse(localStorage.getItem('carmel_daily_log')) || {};
-            const stats = data[today] || { total: 0, itemsSold: {} };
-            document.getElementById('daily-total').innerText = (stats.total || 0) + " Birr";
-            const listContainer = document.getElementById('item-stats-list');
-            if (stats.itemsSold && Object.keys(stats.itemsSold).length > 0) {
-                listContainer.innerHTML = Object.entries(stats.itemsSold).map(([name, qty]) => `
-                    <div class="bg-slate-100 px-3 py-1 rounded-full flex items-center gap-2 border border-slate-200">
-                        <span class="text-[11px] font-bold text-slate-700">${name}</span>
-                        <span class="bg-orange-600 text-white text-[9px] px-1.5 rounded-full font-black">${qty}</span>
-                    </div>`).join('');
-            }
-        }
-        async function openSummary() {
-            document.getElementById('summaryModal').classList.remove('hidden');
-            const today = new Date(); today.setHours(0,0,0,0);
-            const { data } = await supabaseClient.from('orders').select('total_price').gte('created_at', today.toISOString()).in('status', ['verified', 'ready', 'done', 'pending']); 
-            if (data) {
-                let total = data.reduce((acc, curr) => acc + parseFloat(curr.total_price || 0), 0);
-                document.getElementById('total-sales').innerText = total + " ETB";
-                document.getElementById('order-count').innerText = data.length;
-            }
-        }
-        function closeSummary() {
-            document.getElementById('summaryModal').classList.add('hidden');
-            document.getElementById('details-section').classList.add('hidden');
-            document.getElementById('details-btn').innerText = "ዝርዝር አሳይ ⬇️";
-            isDetailsOpen = false;
-        }
-        async function toggleDetails() {
-            const listContainer = document.getElementById('sales-items-list');
-            const btn = document.getElementById('details-btn');
-            if (!isDetailsOpen) {
-                const today = new Date(); today.setHours(0,0,0,0);
-                const { data } = await supabaseClient.from('orders').select('food_list, drink_list, items, total_price, queue_no').gte('created_at', today.toISOString()).in('status', ['verified', 'ready', 'done', 'pending']); 
-                listContainer.innerHTML = '';
-                if (data) {
-                    data.forEach(order => {
-                        let parts = [cleanValue(order.food_list), cleanValue(order.drink_list), cleanValue(order.items)].filter(x => x !== "");
-                        let combined = parts.join(", ") || "No Data";
-                        listContainer.innerHTML += `
-                            <div class="flex justify-between bg-white/5 p-2 rounded-lg border border-white/5 mb-2">
-                                <span class="text-orange-400 font-bold">#${order.queue_no}</span>
-                                <span class="text-white flex-1 px-2 truncate text-[11px]">${combined}</span>
-                                <span class="text-green-400 font-bold text-xs">${order.total_price}</span>
-                            </div>`;
-                    });
-                }
-                document.getElementById('details-section').classList.remove('hidden');
-                btn.innerText = "ዝርዝር ደብቅ ⬆️";
-                isDetailsOpen = true;
-            } else {
-                document.getElementById('details-section').classList.add('hidden');
-                btn.innerText = "ዝርዝር አሳይ ⬇️";
-                isDetailsOpen = false;
-            }
-        }
-        async function verifyOrder(orderId, price, fList, dList, iList) {
-            const { error } = await supabaseClient.from('orders').update({ status: 'verified' }).eq('id', orderId);
-            if (!error) {
-                const today = new Date().toLocaleDateString();
-                let dailyLog = JSON.parse(localStorage.getItem('carmel_daily_log')) || {};
-                if (!dailyLog[today]) dailyLog[today] = { total: 0, itemsSold: {} };
-                dailyLog[today].total += parseFloat(price);
-                [fList, dList, iList].forEach(list => {
-                    let cleaned = cleanValue(list);
-                    if (cleaned) {
-                        cleaned.split(', ').forEach(name => {
-                            if(name) dailyLog[today].itemsSold[name] = (dailyLog[today].itemsSold[name] || 0) + 1;
-                        });
-                    }
-                });
-                localStorage.setItem('carmel_daily_log', JSON.stringify(dailyLog));
-                loadOrders();
-            }
-        }
-        async function adminVerifyClose() {
-            const adminPass = prompt("ሂሳብ ለመዝጋት የባለቤትነት ሚስጥር ቁጥር ያስገቡ፦");
-            if (adminPass === "BOSS2026") await closeDayAccount();
-            else if (adminPass !== null) alert("የተሳሳተ የባለቤትነት ቁጥር ነው!");
-        }
-        async function closeDayAccount() {
-            if (!confirm("የዛሬውን ሂሳብ ዘግተው ሽያጩን በፋይል (Excel) ማውረድ ይፈልጋሉ?")) return;
-            const today = new Date(); today.setHours(0,0,0,0);
-            const { data: salesData } = await supabaseClient.from('orders').select('queue_no, food_list, drink_list, items, total_price, payment_method, created_at').gte('created_at', today.toISOString()).neq('status', 'cancelled');
-            if (!salesData || salesData.length === 0) return alert("ዳታ አልተገኘም!");
-            await supabaseClient.from('orders').update({ status: 'archived' }).gte('created_at', today.toISOString()).in('status', ['verified', 'ready', 'done', 'pending']);
-            let csvContent = "\uFEFFተራ ቁጥር,ትዕዛዝ,ዋጋ,አከፋፈል,ሰዓት\n";
-            salesData.forEach(row => {
-                let items = [cleanValue(row.food_list), cleanValue(row.drink_list), cleanValue(row.items)].filter(x => x !== "").join(" + ");
-                csvContent += `${row.queue_no},"${items}",${row.total_price},${row.payment_method || 'Cash'},${new Date(row.created_at).toLocaleTimeString()}\n`;
-            });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }));
-            link.download = `Carmel_Sales_${today.toLocaleDateString().replace(/\//g, '-')}.csv`;
-            link.click();
-            localStorage.removeItem('carmel_daily_log');
-            alert("ሂሳብ ተዘግቷል!");
-            window.location.reload(); 
-        }
-        // --- READY ORDERS LOGIC (New) ---
-        async function loadReadyOrders() {
-            const today = new Date(); today.setHours(0,0,0,0);
-            const { data } = await supabaseClient.from('orders').select('id, queue_no').eq('status', 'ready').gte('created_at', today.toISOString());
-            const tray = document.getElementById('ready-tray');
-            tray.innerHTML = '';
-            if (data && data.length > 0) {
-                data.forEach(order => {
-                    const icon = document.createElement('div');
-                    icon.className = "bg-green-600 text-white pl-4 pr-1 py-1 rounded-full flex items-center gap-2 shadow-lg animate-bounce";
-                    icon.innerHTML = `<span class="font-black text-sm">#${order.queue_no} ዝግጁ</span>
-                                     <button onclick="orderOut('${order.id}')" class="bg-white/20 hover:bg-white/40 rounded-full p-1 text-[10px] font-black uppercase">Out</button>`;
-                    tray.appendChild(icon);
-                });
-            }
-        }
-        async function orderOut(id) {
-            await supabaseClient.from('orders').update({ status: 'done' }).eq('id', id);
-            loadReadyOrders();
-        }
-        async function loadOrders() {
-            const { data } = await supabaseClient.from('orders').select('*').eq('status', 'pending');
-            const list = document.getElementById('pending-list');
-            document.getElementById('pending-badge').innerText = data ? data.length : 0;
-            list.innerHTML = '';
-            if (data) {
-                data.forEach(order => {
-                    let combined = [cleanValue(order.food_list), cleanValue(order.drink_list), cleanValue(order.items)].filter(x => x !== "").join(", ") || "No Items";
-                    const card = document.createElement('div');
-                    card.className = "bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm";
-                    card.innerHTML = `<div class="flex justify-between items-center mb-4"><span class="text-3xl font-black">#${order.queue_no}</span><span class="text-green-600 font-bold">${order.total_price} Birr</span></div><p class="text-slate-600 font-bold mb-6">${combined}</p><button onclick="verifyOrder('${order.id}', '${order.total_price}', '${order.food_list}', '${order.drink_list}', '${order.items}')" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black hover:bg-black transition-all">አረጋግጥ (Verify)</button>`;
-                    list.appendChild(card);
-                });
-            }
-            updateSalesUI();
-        }
-        supabaseClient.channel('refresh')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
-                if (payload.new && payload.new.status === 'ready') {
-                    readySound.play();
-                    loadReadyOrders();
-                }
-                loadOrders();
-            })
-            .subscribe();
-        loadOrders();
-        loadReadyOrders();
-    </script>
+loadOrders();
+}
+
+// ---------- CANCEL ----------
+async function cancelOrder(id){
+if(!confirm("Cancel?")) return;
+await supabaseClient.from('orders').update({status:'cancelled'}).eq('id',id);
+loadOrders();
+}
+
+// ---------- EXPENSE ----------
+function addExpense(){
+let name=document.getElementById('exp-name').value;
+let amount=Number(document.getElementById('exp-amount').value);
+
+let e=JSON.parse(localStorage.getItem('expenses')||"[]");
+e.push({name,amount});
+localStorage.setItem('expenses',JSON.stringify(e));
+
+alert("Expense Added");
+}
+
+// ---------- READY ----------
+async function loadReady(){
+const {data}=await supabaseClient.from('orders').select('queue_no').eq('status','ready');
+let tray=document.getElementById('ready-tray');
+tray.innerHTML='';
+if(data){
+data.forEach(o=>{
+let d=document.createElement('div');
+d.className="bg-green-600 text-white px-3 py-1 rounded-full";
+d.innerText="#"+o.queue_no+" Ready";
+tray.appendChild(d);
+});
+}
+}
+
+// ---------- LOAD ----------
+async function loadOrders(){
+const {data}=await supabaseClient.from('orders').select('*').eq('status','pending');
+let list=document.getElementById('pending-list');
+list.innerHTML='';
+
+if(data){
+data.forEach(o=>{
+let items=[clean(o.food_list),clean(o.drink_list),clean(o.items)].filter(x=>x!="").join(", ");
+
+let d=document.createElement('div');
+d.className="bg-white p-4 rounded shadow";
+
+d.innerHTML=`
+<b>#${o.queue_no}</b> - ${o.total_price} Birr
+<p>${items}</p>
+
+${o.payment_screenshot ? `<img src="${o.payment_screenshot}" onclick="viewImage('${o.payment_screenshot}')" class="h-32 w-full object-cover my-2">` : ''}
+
+<div class="flex gap-2">
+<button onclick="verifyOrder('${o.id}','${o.total_price}')" class="bg-green-600 text-white px-2 py-1 rounded flex-1">✔</button>
+<button onclick="cancelOrder('${o.id}')" class="bg-red-600 text-white px-2 py-1 rounded flex-1">✖</button>
+</div>
+`;
+
+list.appendChild(d);
+});
+}
+
+updateSales();
+loadReady();
+}
+
+// ---------- SALES ----------
+function updateSales(){
+document.getElementById('daily-total').innerText=(localStorage.getItem('sales')||0)+" Birr";
+}
+
+// ---------- REPORT ----------
+function openReport(){
+let sales=Number(localStorage.getItem('sales')||0);
+let exp=JSON.parse(localStorage.getItem('expenses')||"[]").reduce((a,b)=>a+b.amount,0);
+
+document.getElementById('r-sales').innerText=sales;
+document.getElementById('r-expense').innerText=exp;
+document.getElementById('r-profit').innerText=sales-exp;
+
+document.getElementById('reportModal').classList.remove('hidden');
+document.getElementById('reportModal').classList.add('flex');
+}
+
+function closeReport(){
+document.getElementById('reportModal').classList.add('hidden');
+}
+
+// ---------- EXPORT ----------
+function downloadExcel(){
+let sales=localStorage.getItem('sales')||0;
+let exp=JSON.parse(localStorage.getItem('expenses')||"[]");
+
+let csv="Type,Name,Amount\n";
+csv+=`Sales,Total,${sales}\n`;
+
+exp.forEach(e=>{
+csv+=`Expense,${e.name},${e.amount}\n`;
+});
+
+let blob=new Blob([csv],{type:'text/csv'});
+let a=document.createElement('a');
+a.href=URL.createObjectURL(blob);
+a.download="report.csv";
+a.click();
+}
+
+// ---------- REALTIME ----------
+supabaseClient.channel('orders')
+.on('postgres_changes',{event:'*',schema:'public',table:'orders'},(p)=>{
+if(p.new && p.new.status==="ready") sound.play();
+loadOrders();
+}).subscribe();
+
+// ---------- START ----------
+loadOrders();
+
+</script>
+
 </body>
 </html>
