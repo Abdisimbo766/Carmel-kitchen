@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Carmel Cashier Pro</title>
+<title>Carmel Cashier Full Pro</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -16,155 +16,215 @@
 
 <body class="bg-slate-50 p-4 pb-24">
 
-<!-- READY TRAY -->
-<div id="ready-tray" class="max-w-4xl mx-auto mb-4 flex flex-wrap gap-2"></div>
+<!-- READY ORDERS -->
+<div id="ready-tray" class="max-w-5xl mx-auto mb-4 flex flex-wrap gap-2"></div>
 
-<div class="max-w-4xl mx-auto">
+<div class="max-w-5xl mx-auto">
 
 <!-- SEARCH -->
-<input id="search" placeholder="Search orders..." class="w-full p-2 mb-4 border rounded">
+<input id="search" class="w-full p-2 border rounded mb-3" placeholder="Search orders...">
 
 <!-- DAILY TOTAL -->
-<div class="bg-white p-4 rounded-xl mb-4 shadow">
-    <h2 class="font-bold">Daily Sales</h2>
-    <p id="daily-total" class="text-2xl font-black text-green-600">0</p>
+<div class="bg-white p-4 rounded-xl shadow mb-4">
+    <h2 class="font-bold">💰 Daily Sales</h2>
+    <p id="daily-total" class="text-2xl font-black text-green-600">0 Birr</p>
 </div>
 
+<!-- SUMMARY BUTTON -->
+<button onclick="openSummary()" class="bg-black text-white px-3 py-2 rounded mb-3">
+📊 Report
+</button>
+
 <!-- ORDERS -->
-<h1 class="font-black mb-2">Pending Orders <span id="pending-badge"></span></h1>
+<h1 class="font-black mb-2">Pending Orders (<span id="pending-badge">0</span>)</h1>
 <div id="pending-list" class="space-y-3"></div>
 
 </div>
 
-<!-- SUPABASE -->
-<script>
-const SUPABASE_URL = "https://csdpoyqbkjljaqknunyv.supabase.co";
-const SUPABASE_KEY = "sb_publishable_GZ9zqNM1CPfdyaEhLY_pOg_Fs4CSfrC";
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+<!-- SUMMARY MODAL -->
+<div id="summaryModal" class="hidden fixed inset-0 bg-black/70 p-4">
+<div class="bg-white max-w-md mx-auto p-4 rounded-xl">
 
-// SOUND
+<h2 class="font-black mb-3">Daily Summary</h2>
+
+<p>Total: <span id="total-sales">0</span></p>
+<p>Orders: <span id="order-count">0</span></p>
+
+<button onclick="closeSummary()" class="mt-3 bg-black text-white px-3 py-1 rounded">Close</button>
+
+</div>
+</div>
+
+<script>
+
+const SUPABASE_URL="https://csdpoyqbkjljaqknunyv.supabase.co";
+const SUPABASE_KEY="sb_publishable_GZ9zqNM1CPfdyaEhLY_pOg_Fs4CSfrC";
+const supabaseClient = supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
 const sound = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
 
-// CLEAN
-function clean(v){ return (v && v!=="EMPTY" && v!=="null") ? v : ""; }
+function clean(v){return (v&&v!=="null"&&v!=="EMPTY")?v:"";}
 
 // ================= CANCEL =================
 async function cancelOrder(id){
-    const reason = prompt("Cancel reason?");
-    await supabaseClient.from('orders').update({
-        status:'cancelled',
-        order_note: reason || "Cancelled"
-    }).eq('id',id);
-    loadOrders();
+ if(!confirm("Cancel order?")) return;
+ await supabaseClient.from('orders')
+ .update({status:'cancelled',order_note:'Cancelled by cashier'})
+ .eq('id',id);
+ loadOrders();
 }
 
 // ================= VERIFY =================
 async function verifyOrder(id){
-    await supabaseClient.from('orders')
-    .update({status:'verified'})
-    .eq('id',id);
-    loadOrders();
+ await supabaseClient.from('orders')
+ .update({status:'verified'})
+ .eq('id',id);
+ loadOrders();
 }
 
-// ================= SCREENSHOT =================
+// ================= VIEW SCREENSHOT =================
 function viewImage(url){
-    window.open(url,"_blank");
+ window.open(url,"_blank");
 }
 
 // ================= RECEIPT =================
 function printReceipt(o){
-    const w = window.open();
-    w.document.write(`
-        <h2>Carmel Receipt</h2>
-        <p>Order #${o.queue_no}</p>
-        <p>Total: ${o.total_price}</p>
-        <p>Payment: ${o.payment_method}</p>
-    `);
-    w.print();
+ const w=window.open();
+ w.document.write(`
+ <h2>Carmel Receipt</h2>
+ <p>Order #${o.queue_no}</p>
+ <p>Total: ${o.total_price}</p>
+ <p>Payment: ${o.payment_method||"Cash"}</p>
+ `);
+ w.print();
 }
 
 // ================= LOAD ORDERS =================
 async function loadOrders(){
 
-    const { data } = await supabaseClient
-    .from('orders')
-    .select('*')
-    .eq('status','pending');
+ const {data}=await supabaseClient
+ .from('orders')
+ .select('*')
+ .eq('status','pending');
 
-    const list = document.getElementById("pending-list");
-    document.getElementById("pending-badge").innerText = data?.length || 0;
+ const list=document.getElementById("pending-list");
+ list.innerHTML="";
 
-    list.innerHTML = "";
+ document.getElementById("pending-badge").innerText=data?.length||0;
 
-    let keyword = document.getElementById("search").value || "";
+ let search=document.getElementById("search").value||"";
 
-    let filtered = (data||[]).filter(o =>
-        (o.queue_no||"").includes(keyword) ||
-        (o.items||"").toLowerCase().includes(keyword.toLowerCase())
-    );
+ let filtered=(data||[]).filter(o=>
+ (o.queue_no||"").includes(search) ||
+ (o.items||"").toLowerCase().includes(search.toLowerCase())
+ );
 
-    filtered.forEach(o=>{
+ filtered.forEach(o=>{
 
-        let items = [clean(o.food_list),clean(o.drink_list),clean(o.items)]
-        .filter(x=>x).join(", ");
+ let items=[clean(o.food_list),clean(o.drink_list),clean(o.items)]
+ .filter(x=>x).join(", ");
 
-        list.innerHTML += `
-        <div class="bg-white p-4 rounded-xl shadow">
+ list.innerHTML+=`
+ <div class="bg-white p-4 rounded-xl shadow">
 
-            <div class="flex justify-between">
-                <b>#${o.queue_no}</b>
-                <span class="text-green-600">${o.total_price} Birr</span>
-            </div>
+ <div class="flex justify-between">
+ <b>#${o.queue_no}</b>
+ <span class="text-green-600">${o.total_price} Birr</span>
+ </div>
 
-            <p class="text-sm mt-1">${items}</p>
+ <p class="text-sm">${items}</p>
 
-            <p class="text-xs text-blue-500">Pay: ${o.payment_method||"Cash"}</p>
+ <p class="text-xs text-blue-500">Payment: ${o.payment_method||"Cash"}</p>
 
-            ${o.order_note ? `<p class="text-xs text-gray-500">📝 ${o.order_note}</p>`:""}
+ ${o.order_note?`<p class="text-xs text-gray-500">📝 ${o.order_note}</p>`:""}
 
-            ${o.payment_screenshot ?
-                `<img onclick="viewImage('${o.payment_screenshot}')"
-                src="${o.payment_screenshot}" class="h-32 w-full object-cover rounded mt-2 cursor-pointer border">`
-            : `<p class="text-red-400 text-xs">No Screenshot</p>`}
+ ${o.payment_screenshot?
+ `<img onclick="viewImage('${o.payment_screenshot}')"
+ src="${o.payment_screenshot}"
+ class="h-32 w-full object-cover rounded mt-2 border cursor-pointer">`
+ : `<p class="text-red-400 text-xs">No Screenshot</p>`}
 
-            <div class="flex gap-2 mt-3">
-                <button onclick="verifyOrder('${o.id}')"
-                class="flex-1 bg-green-600 text-white p-2 rounded">✔ Verify</button>
+ <div class="flex gap-2 mt-3">
 
-                <button onclick="cancelOrder('${o.id}')"
-                class="flex-1 bg-red-600 text-white p-2 rounded">✖ Cancel</button>
+ <button onclick="verifyOrder('${o.id}')"
+ class="flex-1 bg-green-600 text-white py-2 rounded">✔ Verify</button>
 
-                <button onclick="printReceipt(${JSON.stringify(o).replace(/"/g,'&quot;')})"
-                class="flex-1 bg-black text-white p-2 rounded">Receipt</button>
-            </div>
-        </div>`;
-    });
+ <button onclick="cancelOrder('${o.id}')"
+ class="flex-1 bg-red-600 text-white py-2 rounded">✖ Cancel</button>
+
+ <button onclick="printReceipt(${JSON.stringify(o).replace(/"/g,'&quot;')})"
+ class="flex-1 bg-black text-white py-2 rounded">Receipt</button>
+
+ </div>
+ </div>`;
+ });
+
+ updateDaily();
 }
 
-// ================= READY ORDERS =================
+// ================= READY =================
 async function loadReady(){
-    const { data } = await supabaseClient
-    .from('orders')
-    .select('id,queue_no')
-    .eq('status','ready');
+ const {data}=await supabaseClient
+ .from('orders')
+ .select('id,queue_no')
+ .eq('status','ready');
 
-    const tray = document.getElementById("ready-tray");
-    tray.innerHTML="";
+ const tray=document.getElementById("ready-tray");
+ tray.innerHTML="";
 
-    data?.forEach(o=>{
-        tray.innerHTML += `
-        <div class="bg-green-600 text-white px-3 py-1 rounded-full text-sm">
-            #${o.queue_no} Ready
-        </div>`;
-    });
+ data?.forEach(o=>{
+ tray.innerHTML+=`
+ <div class="bg-green-600 text-white px-3 py-1 rounded-full">
+ #${o.queue_no} Ready
+ </div>`;
+ });
+}
+
+// ================= DAILY SALES =================
+async function updateDaily(){
+
+ const today=new Date();today.setHours(0,0,0,0);
+
+ const {data}=await supabaseClient
+ .from('orders')
+ .select('total_price')
+ .gte('created_at',today.toISOString())
+ .in('status',['verified','ready','done']);
+
+ let total=0;
+ data?.forEach(o=>total+=Number(o.total_price||0));
+
+ document.getElementById("daily-total").innerText=total+" Birr";
+}
+
+// ================= SUMMARY =================
+async function openSummary(){
+
+ document.getElementById("summaryModal").classList.remove("hidden");
+
+ const today=new Date();today.setHours(0,0,0,0);
+
+ const {data}=await supabaseClient
+ .from('orders')
+ .select('total_price')
+ .gte('created_at',today.toISOString());
+
+ document.getElementById("total-sales").innerText=
+ data?.reduce((a,b)=>a+Number(b.total_price||0),0)||0;
+
+ document.getElementById("order-count").innerText=data?.length||0;
+}
+
+function closeSummary(){
+ document.getElementById("summaryModal").classList.add("hidden");
 }
 
 // ================= REALTIME =================
 supabaseClient.channel('orders')
 .on('postgres_changes',{event:'*',schema:'public',table:'orders'},()=>{
-    sound.play();
-    loadOrders();
-    loadReady();
+ sound.play();
+ loadOrders();
+ loadReady();
 })
 .subscribe();
 
@@ -174,6 +234,5 @@ loadOrders();
 loadReady();
 
 </script>
-
 </body>
 </html>
