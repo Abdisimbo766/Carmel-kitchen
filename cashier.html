@@ -9,12 +9,18 @@
     <style>
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.1); border-radius: 10px; }
+
+        /* Print styles to ensure receipt looks good on thermal paper */
+        @media print {
+            body * { visibility: hidden; }
+            #receipt-print-area, #receipt-print-area * { visibility: visible; }
+            #receipt-print-area { position: absolute; left: 0; top: 0; width: 100%; }
+        }
     </style>
 </head>
 <body class="bg-slate-50 p-4 pb-24">
 
-    <div id="ready-tray" class="max-w-4xl mx-auto mb-6 flex flex-wrap gap-3">
-        </div>
+    <div id="ready-tray" class="max-w-4xl mx-auto mb-6 flex flex-wrap gap-3"></div>
 
     <div class="max-w-4xl mx-auto">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
@@ -76,10 +82,57 @@
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         let isDetailsOpen = false;
 
-        // Sound for finished orders
         const readySound = new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3');
 
         function cleanValue(val) { return (val && val !== "EMPTY" && val !== "null") ? val : ""; }
+
+        // --- PRINTING LOGIC ---
+        function printReceipt(order) {
+            const printWindow = window.open('', '_blank', 'width=300,height=600');
+            const items = [cleanValue(order.fList), cleanValue(order.dList), cleanValue(order.iList)]
+                .filter(x => x !== "")
+                .join(", ");
+
+            const html = `
+                <html>
+                <head>
+                    <style>
+                        body { font-family: 'Courier New', monospace; width: 75mm; padding: 10px; margin: 0; }
+                        .center { text-align: center; }
+                        .line { border-bottom: 1px dashed black; margin: 10px 0; }
+                        .q-num { font-size: 30px; font-weight: bold; margin: 5px 0; }
+                        .total { font-size: 18px; font-weight: bold; display: flex; justify-content: space-between; }
+                    </style>
+                </head>
+                <body>
+                    <div class="center">
+                        <h2 style="margin:0">CARMEL</h2>
+                        <p>የሽያጭ ደረሰኝ</p>
+                        <div class="line"></div>
+                        <div class="q-num">#${order.queueNo}</div>
+                        <div class="line"></div>
+                    </div>
+                    <div style="font-size: 12px; margin-bottom: 10px;">
+                        ቀን: ${new Date().toLocaleString('am-ET')}
+                    </div>
+                    <div style="font-weight: bold;">ትዕዛዝ:</div>
+                    <div style="word-wrap: break-word; font-size: 14px; margin-bottom: 10px;">${items}</div>
+                    <div class="line"></div>
+                    <div class="total">
+                        <span>ጠቅላላ:</span>
+                        <span>${order.price} ETB</span>
+                    </div>
+                    <div class="line"></div>
+                    <p class="center" style="font-size: 10px; margin-top: 20px;">ስለመጡ እናመሰግናለን!</p>
+                    <script>
+                        window.onload = function() { window.print(); window.close(); }
+                    <\/script>
+                </body>
+                </html>
+            `;
+            printWindow.document.write(html);
+            printWindow.document.close();
+        }
 
         function updateSalesUI() {
             const today = new Date().toLocaleDateString();
@@ -143,9 +196,12 @@
             }
         }
 
-        async function verifyOrder(orderId, price, fList, dList, iList) {
+        async function verifyOrder(orderId, price, fList, dList, iList, queue_no) {
             const { error } = await supabaseClient.from('orders').update({ status: 'verified' }).eq('id', orderId);
             if (!error) {
+                // Trigger Receipt Print
+                printReceipt({ queueNo: queue_no, price, fList, dList, iList });
+
                 const today = new Date().toLocaleDateString();
                 let dailyLog = JSON.parse(localStorage.getItem('carmel_daily_log')) || {};
                 if (!dailyLog[today]) dailyLog[today] = { total: 0, itemsSold: {} };
@@ -189,7 +245,6 @@
             window.location.reload(); 
         }
 
-        // --- READY ORDERS LOGIC (New) ---
         async function loadReadyOrders() {
             const today = new Date(); today.setHours(0,0,0,0);
             const { data } = await supabaseClient.from('orders').select('id, queue_no').eq('status', 'ready').gte('created_at', today.toISOString());
@@ -207,7 +262,6 @@
         }
 
         async function orderOut(id) {
-            // Mark as 'done' so it disappears from the tray
             await supabaseClient.from('orders').update({ status: 'done' }).eq('id', id);
             loadReadyOrders();
         }
@@ -222,7 +276,16 @@
                     let combined = [cleanValue(order.food_list), cleanValue(order.drink_list), cleanValue(order.items)].filter(x => x !== "").join(", ") || "No Items";
                     const card = document.createElement('div');
                     card.className = "bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm";
-                    card.innerHTML = `<div class="flex justify-between items-center mb-4"><span class="text-3xl font-black">#${order.queue_no}</span><span class="text-green-600 font-bold">${order.total_price} Birr</span></div><p class="text-slate-600 font-bold mb-6">${combined}</p><button onclick="verifyOrder('${order.id}', '${order.total_price}', '${order.food_list}', '${order.drink_list}', '${order.items}')" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black hover:bg-black transition-all">አረጋግጥ (Verify)</button>`;
+                    card.innerHTML = `
+                        <div class="flex justify-between items-center mb-4">
+                            <span class="text-3xl font-black">#${order.queue_no}</span>
+                            <span class="text-green-600 font-bold">${order.total_price} Birr</span>
+                        </div>
+                        <p class="text-slate-600 font-bold mb-6">${combined}</p>
+                        <button onclick="verifyOrder('${order.id}', '${order.total_price}', '${order.food_list}', '${order.drink_list}', '${order.items}', '${order.queue_no}')" 
+                                class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black hover:bg-black transition-all">
+                            አረጋግጥ (Verify & Print)
+                        </button>`;
                     list.appendChild(card);
                 });
             }
